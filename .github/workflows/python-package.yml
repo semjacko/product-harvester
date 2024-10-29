@@ -36,3 +36,7 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+    - name: Coverage comment
+      uses: py-cov-action/python-coverage-comment-action@v3
+      with:
+        GITHUB_TOKEN: ${{ github.token }}
