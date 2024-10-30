@@ -6,8 +6,18 @@ from langchain_core.language_models.fake_chat_models import FakeMessagesListChat
 from langchain_core.messages import BaseMessage
 from pydantic import TypeAdapter
 
-from product_harvester.processors import PriceTagImageProcessor
+from product_harvester.processors import ImageProcessor, PriceTagImageProcessor
 from product_harvester.product import Product
+
+
+class TestImageProcessor(TestCase):
+    def test_process_not_implemented(self):
+        with self.assertRaises(NotImplementedError):
+            ImageProcessor().process("<image>")
+
+    def test_process_batch_not_implemented(self):
+        with self.assertRaises(NotImplementedError):
+            ImageProcessor().process_batch(["<image1>", "<image2>"])
 
 
 class TestPriceTagImageProcessor(TestCase):
@@ -16,7 +26,7 @@ class TestPriceTagImageProcessor(TestCase):
         responses = self._make_responses(want_product.model_dump_json())
         fake_model = FakeMessagesListChatModel(responses=responses)
         product = PriceTagImageProcessor(fake_model).process(encoded_image="<image>")
-        self.assertEqual(want_product, product)
+        self.assertEqual(product, want_product)
 
     def test_process_invalid_product_output_json(self):
         responses = self._make_responses("{wat")
@@ -48,7 +58,7 @@ class TestPriceTagImageProcessor(TestCase):
         products = PriceTagImageProcessor(fake_model).process_batch(
             encoded_images=["<image1>", "<image2>", "<image3>"]
         )
-        self.assertEqual(want_products, products)
+        self.assertEqual(products, want_products)
 
     def test_process_batch_invalid_products_output_json(self):
         valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg")
