@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from pydantic import ValidationError
+
 from product_harvester.product import Product
 
 
@@ -10,27 +12,27 @@ class TestProduct(TestCase):
         Product(name="Kiwi", qty=3, qty_unit="pcs", price=10.54)
 
     def test_empty(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Product()
 
     def test_invalid_name(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Product(name="", qty=10, qty_unit="kg", price=10)
 
     def test_invalid_qty(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Product(name="Banana", qty=0, qty_unit="kg", price=10)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Product(name="Banana", qty=-2, qty_unit="kg", price=10)
 
     def test_invalid_qty_unit(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Product(name="Banana", qty=10, qty_unit="", price=10)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Product(name="Banana", qty=10, qty_unit="wat", price=10)
 
     def test_invalid_price(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Product(name="Banana", qty=10, qty_unit="kg", price=0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Product(name="Banana", qty=10, qty_unit="kg", price=-2)
