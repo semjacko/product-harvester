@@ -8,6 +8,14 @@ class ImageRetriever:
         raise NotImplementedError()
 
 
+class FakeImageRetriever(ImageRetriever):
+    def __init__(self, retrieved_images: list[str]):
+        self._retrieved_images = retrieved_images
+
+    def retrieve_images(self) -> list[str]:
+        return self._retrieved_images
+
+
 class LocalImageRetriever(ImageRetriever):
     def __init__(self, folder_path: str):
         self._folder_path = os.path.normpath(folder_path)
@@ -30,11 +38,3 @@ class GoogleDriveImageRetriever(ImageRetriever):
     def retrieve_images(self) -> list[str]:
         # TODO
         raise NotImplementedError()
-
-
-class FakeImageRetriever(ImageRetriever):
-    def __init__(self, retrieved_images: list[str]):
-        self._retrieved_images = retrieved_images
-
-    def retrieve_images(self) -> list[str]:
-        return self._retrieved_images
