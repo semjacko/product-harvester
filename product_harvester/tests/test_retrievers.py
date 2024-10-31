@@ -3,7 +3,6 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from product_harvester.retrievers import (
-    FakeImageRetriever,
     GoogleDriveImageRetriever,
     ImageRetriever,
     LocalImageRetriever,
@@ -25,13 +24,6 @@ class TestImageRetriever(TestCase):
     def test_not_implemented(self):
         with self.assertRaises(NotImplementedError):
             ImageRetriever().retrieve_images()
-
-
-class TestFakeImageRetriever(TestCase):
-    def test_success(self):
-        want_images = ["<image1>", "<image2>"]
-        images = FakeImageRetriever(want_images).retrieve_images()
-        self.assertEqual(images, want_images)
 
 
 class TestLocalImageRetriever(TestCase):
