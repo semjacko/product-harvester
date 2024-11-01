@@ -20,9 +20,7 @@ class LocalImageRetriever(ImageRetriever):
 
     def _retrieve_image_paths(self) -> list[str]:
         return [
-            file_path
-            for file_path in self._retrieve_file_paths()
-            if file_path.lower().endswith(self._image_extensions)
+            file_path for file_path in self._retrieve_file_paths() if file_path.lower().endswith(self._image_extensions)
         ]
 
     def _retrieve_file_paths(self) -> list[str]:

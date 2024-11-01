@@ -58,12 +58,8 @@ Example quantity units are: l, ml, g, kg, pcs.
 
     def process_batch(self, encoded_images: list[str]) -> list[Product]:
         chain = self._prepare_chain()
-        input_data = [
-            self._make_input_data(encoded_image) for encoded_image in encoded_images
-        ]
-        outputs = chain.batch(
-            input_data, RunnableConfig(max_concurrency=4), return_exceptions=True
-        )
+        input_data = [self._make_input_data(encoded_image) for encoded_image in encoded_images]
+        outputs = chain.batch(input_data, RunnableConfig(max_concurrency=4), return_exceptions=True)
         return [product for product in outputs if isinstance(product, Product)]
 
     def _prepare_chain(self) -> RunnableSerializable[dict, Any]:
