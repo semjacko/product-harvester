@@ -3,7 +3,10 @@ from typing import Any
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableConfig, RunnableSerializable
+from langchain_core.runnables import (
+    RunnableConfig,
+    RunnableSerializable,
+)
 
 from product_harvester.product import Product
 
@@ -44,10 +47,13 @@ Example quantity units are: l, ml, g, kg, pcs.
     def __init__(self, model: BaseChatModel):
         self._model = model
 
-    def process(self, encoded_image: str) -> Product:
+    def process(self, encoded_image: str) -> Product | None:
         chain = self._prepare_chain()
         input_data = self._make_input_data(encoded_image)
-        product = chain.invoke(input_data)
+        try:
+            product = chain.invoke(input_data)
+        except Exception:
+            return None
         return product
 
     def process_batch(self, encoded_images: list[str]) -> list[Product]:
@@ -55,8 +61,10 @@ Example quantity units are: l, ml, g, kg, pcs.
         input_data = [
             self._make_input_data(encoded_image) for encoded_image in encoded_images
         ]
-        products = chain.batch(input_data, RunnableConfig(max_concurrency=4))
-        return products
+        outputs = chain.batch(
+            input_data, RunnableConfig(max_concurrency=4), return_exceptions=True
+        )
+        return [product for product in outputs if isinstance(product, Product)]
 
     def _prepare_chain(self) -> RunnableSerializable[dict, Any]:
         return self._prompt | self._model | self._parser

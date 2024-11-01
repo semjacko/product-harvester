@@ -31,15 +31,15 @@ class TestPriceTagImageProcessor(TestCase):
     def test_process_invalid_product_output_json(self):
         mock_responses = self._make_mock_responses("{wat")
         fake_model = FakeMessagesListChatModel(responses=mock_responses)
-        with self.assertRaises(OutputParserException):
-            PriceTagImageProcessor(fake_model).process(encoded_image="<image>")
+        product = PriceTagImageProcessor(fake_model).process(encoded_image="<image>")
+        self.assertIsNone(product)
 
     def test_process_incomplete_product_output(self):
         # language=JSON
         mock_responses = self._make_mock_responses('{"name":"Banana"}')
         fake_model = FakeMessagesListChatModel(responses=mock_responses)
-        with self.assertRaises(OutputParserException):
-            PriceTagImageProcessor(fake_model).process(encoded_image="<image>")
+        product = PriceTagImageProcessor(fake_model).process(encoded_image="<image>")
+        self.assertIsNone(product)
 
     def test_process_batch_success(self):
         # language=JSON
@@ -66,10 +66,10 @@ class TestPriceTagImageProcessor(TestCase):
             mock_valid_product.model_dump_json(), "{wat"
         )
         fake_model = FakeMessagesListChatModel(responses=mock_responses)
-        with self.assertRaises(OutputParserException):
-            PriceTagImageProcessor(fake_model).process_batch(
-                encoded_images=["<image1>", "<image2>"]
-            )
+        products = PriceTagImageProcessor(fake_model).process_batch(
+            encoded_images=["<image1>", "<image2>"]
+        )
+        self.assertEqual(products, [mock_valid_product])
 
     def test_process_batch_incomplete_product_output(self):
         mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg")
@@ -79,10 +79,10 @@ class TestPriceTagImageProcessor(TestCase):
             mock_valid_product.model_dump_json(),
         )
         fake_model = FakeMessagesListChatModel(responses=mock_responses)
-        with self.assertRaises(OutputParserException):
-            PriceTagImageProcessor(fake_model).process_batch(
-                encoded_images=["<image1>", "<image2>"]
-            )
+        products = PriceTagImageProcessor(fake_model).process_batch(
+            encoded_images=["<image1>", "<image2>"]
+        )
+        self.assertEqual(products, [mock_valid_product])
 
     @staticmethod
     def _make_mock_responses(*contents: str) -> list[BaseMessage]:
