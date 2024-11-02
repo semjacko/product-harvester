@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 from product_harvester.harvester import ProductsHarvester
-from product_harvester.processors import SimpleProcessingResult
+from product_harvester.processors import ProcessingResult
 from product_harvester.product import Product
 
 
@@ -19,7 +19,7 @@ class TestProductsHarvester(TestCase):
             Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99),
             Product(name="Milk", qty=500, qty_unit="ml", price=0.99),
         ]
-        self._mock_processor.process.return_value = SimpleProcessingResult(mock_products, [])
+        self._mock_processor.process.return_value = ProcessingResult(mock_products, [])
 
         products = self._harvester.harvest()
 

@@ -15,16 +15,6 @@ class ProcessingError(Exception):
 
 
 class ProcessingResult:
-    @property
-    def products(self) -> list[Product]:
-        raise NotImplementedError()
-
-    @property
-    def errors(self) -> list[ProcessingError]:
-        raise NotImplementedError()
-
-
-class SimpleProcessingResult(ProcessingResult):
     def __init__(self, products: list[Product], errors: list[ProcessingError]):
         self._products = products
         self._errors = errors
