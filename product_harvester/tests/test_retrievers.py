@@ -73,7 +73,7 @@ class TestLocalImageRetriever(TestCase):
     @patch("builtins.open", new_callable=mock_open)
     @patch("product_harvester.retrievers.glob", return_value=["some_image.png"])
     def test_error(self, mock_glob, mock_builtin_open):
-        mock_builtin_open.side_effect = (IOError("File could not be opened"),)
+        mock_builtin_open.side_effect = IOError("File could not be opened")
         retriever = LocalImageRetriever("./images")
         with self.assertRaises(IOError):
             retriever.retrieve_images()

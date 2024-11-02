@@ -1,4 +1,4 @@
-from product_harvester.processors import ImageProcessor
+from product_harvester.processors import ImageProcessor, ProcessingError
 from product_harvester.product import Product
 from product_harvester.retrievers import ImageRetriever
 
@@ -12,5 +12,10 @@ class ProductsHarvester:
         encoded_images = self._retriever.retrieve_images()
         if not encoded_images:
             return []
-        products = self._processor.process_batch(encoded_images)
-        return products
+        result = self._processor.process(encoded_images)
+        self._track_errors(result.errors)
+        return result.products
+
+    @staticmethod
+    def _track_errors(errors: list[ProcessingError]):
+        print(errors)  # TODO

@@ -1,21 +1,65 @@
-from typing import Any
-
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import (
-    RunnableConfig,
-    RunnableSerializable,
-)
+from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables.utils import Output
+from langsmith import RunTree
 
 from product_harvester.product import Product
 
 
-class ImageProcessor:
-    def process(self, encoded_image: str) -> Product:
+class ProcessingError(Exception):
+    def __init__(self, input: dict, error: str):
+        self.input = input
+        self.error = error
+
+
+class ProcessingResult:
+    @property
+    def products(self) -> list[Product]:
         raise NotImplementedError()
 
-    def process_batch(self, encoded_image: list[str]) -> list[Product]:
+    @property
+    def errors(self) -> list[ProcessingError]:
+        raise NotImplementedError()
+
+
+class SimpleProcessingResult(ProcessingResult):
+    def __init__(self, products: list[Product], errors: list[ProcessingError]):
+        self._products = products
+        self._errors = errors
+
+    @property
+    def products(self) -> list[Product]:
+        return self._products
+
+    @property
+    def errors(self) -> list[ProcessingError]:
+        return self._errors
+
+
+class _ImageProcessingResult(ProcessingResult):
+    def __init__(self):
+        self._products: list[Product] = []
+        self._errors: list[ProcessingError] = []
+
+    def set_products_from_outputs(self, outputs: list[Output]):
+        self._products = [product for product in outputs if isinstance(product, Product)]
+
+    def add_error_from_run_tree(self, run_tree: RunTree):
+        self._errors.append(ProcessingError(run_tree.inputs, run_tree.error))
+
+    @property
+    def products(self) -> list[Product]:
+        return self._products
+
+    @property
+    def errors(self) -> list[ProcessingError]:
+        return self._errors
+
+
+class ImageProcessor:
+    def process(self, encoded_images: list[str]) -> ProcessingResult:
         raise NotImplementedError()
 
 
@@ -47,23 +91,14 @@ Example quantity units are: l, ml, g, kg, pcs.
     def __init__(self, model: BaseChatModel):
         self._model = model
 
-    def process(self, encoded_image: str) -> Product | None:
-        chain = self._prepare_chain()
-        input_data = self._make_input_data(encoded_image)
-        try:
-            product = chain.invoke(input_data)
-        except Exception:
-            return None
-        return product
-
-    def process_batch(self, encoded_images: list[str]) -> list[Product]:
-        chain = self._prepare_chain()
+    def process(self, encoded_images: list[str]) -> ProcessingResult:
         input_data = [self._make_input_data(encoded_image) for encoded_image in encoded_images]
+        chain = self._prompt | self._model | self._parser
+        result = _ImageProcessingResult()
+        chain = chain.with_listeners(on_error=result.add_error_from_run_tree)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=4), return_exceptions=True)
-        return [product for product in outputs if isinstance(product, Product)]
-
-    def _prepare_chain(self) -> RunnableSerializable[dict, Any]:
-        return self._prompt | self._model | self._parser
+        result.set_products_from_outputs(outputs)
+        return result
 
     def _make_input_data(self, encoded_image: str) -> dict[str, str]:
         return {

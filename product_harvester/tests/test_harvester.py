@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 from product_harvester.harvester import ProductsHarvester
+from product_harvester.processors import SimpleProcessingResult
 from product_harvester.product import Product
 
 
@@ -18,13 +19,13 @@ class TestProductsHarvester(TestCase):
             Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99),
             Product(name="Milk", qty=500, qty_unit="ml", price=0.99),
         ]
-        self._mock_processor.process_batch.return_value = mock_products
+        self._mock_processor.process.return_value = SimpleProcessingResult(mock_products, [])
 
-        result = self._harvester.harvest()
+        products = self._harvester.harvest()
 
         self._mock_retriever.retrieve_images.assert_called_once()
-        self._mock_processor.process_batch.assert_called_once_with(mock_images)
-        self.assertEqual(result, mock_products)
+        self._mock_processor.process.assert_called_once_with(mock_images)
+        self.assertEqual(products, mock_products)
 
     def test_harvest_empty_retriever_result(self):
         self._mock_retriever.retrieve_images.return_value = []
@@ -32,5 +33,5 @@ class TestProductsHarvester(TestCase):
         result = self._harvester.harvest()
 
         self._mock_retriever.retrieve_images.assert_called_once()
-        self._mock_processor.process_batch.assert_not_called()
+        self._mock_processor.process.assert_not_called()
         self.assertEqual(result, [])
