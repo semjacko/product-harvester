@@ -10,6 +10,14 @@ from product_harvester.processors import ImageProcessor, PriceTagImageProcessor,
 from product_harvester.product import Product
 
 
+class TestProcessingResult(TestCase):
+    def test_not_implemented(self):
+        with self.assertRaises(NotImplementedError):
+            _ = ProcessingResult().products
+        with self.assertRaises(NotImplementedError):
+            _ = ProcessingResult().errors
+
+
 class TestImageProcessor(TestCase):
     def test_process_not_implemented(self):
         with self.assertRaises(NotImplementedError):
