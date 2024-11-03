@@ -30,8 +30,7 @@ class ProcessingResult:
 
 class _ImageProcessingResult(ProcessingResult):
     def __init__(self):
-        self._products: list[Product] = []
-        self._errors: list[ProcessingError] = []
+        super().__init__([], [])
 
     def set_products_from_outputs(self, outputs: list[Output]):
         self._products = [product for product in outputs if isinstance(product, Product)]
@@ -39,17 +38,9 @@ class _ImageProcessingResult(ProcessingResult):
     def add_error_from_run_tree(self, run_tree: RunTree):
         self._errors.append(ProcessingError(run_tree.inputs, run_tree.error))
 
-    @property
-    def products(self) -> list[Product]:
-        return self._products
-
-    @property
-    def errors(self) -> list[ProcessingError]:
-        return self._errors
-
 
 class ImageProcessor:
-    def process(self, encoded_images: list[str]) -> ProcessingResult:
+    def process(self, image_links: list[str]) -> ProcessingResult:
         raise NotImplementedError()
 
 
@@ -69,7 +60,7 @@ Example quantity units are: l, ml, g, kg, pcs.
                 [
                     {
                         "type": "image_url",
-                        "image_url": {"url": "data:image/jpeg;base64,{image_data}"},
+                        "image_url": {"url": "{image_link}"},
                     },
                     {"type": "text", "text": "process_image"},
                 ],
@@ -81,8 +72,8 @@ Example quantity units are: l, ml, g, kg, pcs.
     def __init__(self, model: BaseChatModel):
         self._model = model
 
-    def process(self, encoded_images: list[str]) -> ProcessingResult:
-        input_data = [self._make_input_data(encoded_image) for encoded_image in encoded_images]
+    def process(self, image_links: list[str]) -> ProcessingResult:
+        input_data = [self._make_input_data(image_link) for image_link in image_links]
         chain = self._prompt | self._model | self._parser
         result = _ImageProcessingResult()
         chain = chain.with_listeners(on_error=result.add_error_from_run_tree)
@@ -90,8 +81,8 @@ Example quantity units are: l, ml, g, kg, pcs.
         result.set_products_from_outputs(outputs)
         return result
 
-    def _make_input_data(self, encoded_image: str) -> dict[str, str]:
+    def _make_input_data(self, image_link: str) -> dict[str, str]:
         return {
-            "image_data": encoded_image,
+            "image_link": image_link,
             "format_instructions": self._parser.get_format_instructions(),
         }
