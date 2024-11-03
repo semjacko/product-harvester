@@ -1,22 +1,20 @@
-import base64
 import os
 from glob import glob
 
 
-class ImageRetriever:
-    def retrieve_images(self) -> list[str]:
+class ImageLinksRetriever:
+    def retrieve_image_links(self) -> list[str]:
         raise NotImplementedError()
 
 
-class LocalImageRetriever(ImageRetriever):
+class LocalImageLinksRetriever(ImageLinksRetriever):
     _image_extensions = (".jpg", ".jpeg", ".png")
 
     def __init__(self, folder_path: str):
         self._folder_path = os.path.normpath(folder_path)
 
-    def retrieve_images(self) -> list[str]:
-        paths = self._retrieve_image_paths()
-        return [self._encode_image(path) for path in paths]
+    def retrieve_image_links(self) -> list[str]:
+        return self._retrieve_image_paths()
 
     def _retrieve_image_paths(self) -> list[str]:
         return [
@@ -27,13 +25,8 @@ class LocalImageRetriever(ImageRetriever):
         path_pattern = os.path.join(self._folder_path, "*")
         return glob(path_pattern)
 
-    @staticmethod
-    def _encode_image(path: str) -> str:
-        with open(path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode("utf-8")
 
-
-class GoogleDriveImageRetriever(ImageRetriever):
-    def retrieve_images(self) -> list[str]:
+class GoogleDriveImageLinksRetriever(ImageLinksRetriever):
+    def retrieve_image_links(self) -> list[str]:
         # TODO
         raise NotImplementedError()

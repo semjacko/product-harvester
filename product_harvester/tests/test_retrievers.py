@@ -1,57 +1,48 @@
-import base64
 from unittest import TestCase
-from unittest.mock import mock_open, patch
+from unittest.mock import patch
 
 from product_harvester.retrievers import (
-    GoogleDriveImageRetriever,
-    ImageRetriever,
-    LocalImageRetriever,
+    GoogleDriveImageLinksRetriever,
+    ImageLinksRetriever,
+    LocalImageLinksRetriever,
 )
 
-_MOCK_IMAGE_DATA = b"mock_image_data"
-_MOCK_ENCODED_IMAGE = base64.b64encode(_MOCK_IMAGE_DATA).decode("utf-8")
 
-
-class TestImageRetriever(TestCase):
+class TestImageLinksRetriever(TestCase):
     def test_not_implemented(self):
         with self.assertRaises(NotImplementedError):
-            ImageRetriever().retrieve_images()
+            ImageLinksRetriever().retrieve_image_links()
 
 
-class TestLocalImageRetriever(TestCase):
+class TestLocalImageLinksRetriever(TestCase):
     @patch("product_harvester.retrievers.glob", return_value=[])
     def test_empty_path(self, mock_glob):
-        retriever = LocalImageRetriever("")
-        images = retriever.retrieve_images()
+        retriever = LocalImageLinksRetriever("")
+        image_links = retriever.retrieve_image_links()
         mock_glob.assert_called_once_with("./*")
-        self.assertEqual(images, [])
+        self.assertEqual(image_links, [])
 
-    @patch("builtins.open", new_callable=mock_open, read_data=_MOCK_IMAGE_DATA)
     @patch("product_harvester.retrievers.glob", return_value=["/image.jpg"])
-    def test_root_path(self, mock_glob, mock_builtin_open):
-        retriever = LocalImageRetriever("/")
-        images = retriever.retrieve_images()
+    def test_root_path(self, mock_glob):
+        retriever = LocalImageLinksRetriever("/")
+        image_links = retriever.retrieve_image_links()
         mock_glob.assert_called_once_with("/*")
-        mock_builtin_open.assert_called_once_with("/image.jpg", "rb")
-        self.assertEqual(images, [_MOCK_ENCODED_IMAGE])
+        self.assertEqual(image_links, ["/image.jpg"])
 
-    @patch("builtins.open", new_callable=mock_open, read_data=_MOCK_IMAGE_DATA)
     @patch("product_harvester.retrievers.glob", return_value=["./relative.png"])
-    def test_relative_path(self, mock_glob, mock_builtin_open):
-        retriever = LocalImageRetriever("./images")
-        images = retriever.retrieve_images()
+    def test_relative_path(self, mock_glob):
+        retriever = LocalImageLinksRetriever("./images")
+        image_links = retriever.retrieve_image_links()
         mock_glob.assert_called_once_with("images/*")
-        mock_builtin_open.assert_called_once_with("./relative.png", "rb")
-        self.assertEqual(images, [_MOCK_ENCODED_IMAGE])
+        self.assertEqual(image_links, ["./relative.png"])
 
     @patch("product_harvester.retrievers.glob", return_value=[])
     def test_long_path(self, mock_glob):
-        retriever = LocalImageRetriever("/images/some/very/very/deep")
-        images = retriever.retrieve_images()
+        retriever = LocalImageLinksRetriever("/images/some/very/very/deep")
+        image_links = retriever.retrieve_image_links()
         mock_glob.assert_called_once_with("/images/some/very/very/deep/*")
-        self.assertEqual(images, [])
+        self.assertEqual(image_links, [])
 
-    @patch("builtins.open", new_callable=mock_open, read_data=_MOCK_IMAGE_DATA)
     @patch(
         "product_harvester.retrievers.glob",
         return_value=[
@@ -61,27 +52,22 @@ class TestLocalImageRetriever(TestCase):
             "folder/img3.PNG",
         ],
     )
-    def test_non_image_in_middle(self, mock_glob, mock_builtin_open):
-        retriever = LocalImageRetriever("folder")
-        images = retriever.retrieve_images()
+    def test_non_image_in_middle(self, mock_glob):
+        retriever = LocalImageLinksRetriever("folder")
+        image_links = retriever.retrieve_image_links()
         mock_glob.assert_called_once_with("folder/*")
-        mock_builtin_open.assert_any_call("folder/img1.jpg", "rb")
-        mock_builtin_open.assert_any_call("folder/img2.Jpeg", "rb")
-        mock_builtin_open.assert_any_call("folder/img3.PNG", "rb")
-        self.assertEqual(images, [_MOCK_ENCODED_IMAGE] * 3)
+        self.assertEqual(image_links, ["folder/img1.jpg", "folder/img2.Jpeg", "folder/img3.PNG"])
 
-    @patch("builtins.open", new_callable=mock_open)
     @patch("product_harvester.retrievers.glob", return_value=["some_image.png"])
-    def test_error(self, mock_glob, mock_builtin_open):
-        mock_builtin_open.side_effect = IOError("File could not be opened")
-        retriever = LocalImageRetriever("./images")
-        with self.assertRaises(IOError):
-            retriever.retrieve_images()
+    def test_error(self, mock_glob):
+        mock_glob.side_effect = ValueError("Some error")
+        retriever = LocalImageLinksRetriever("./images")
+        with self.assertRaises(ValueError):
+            retriever.retrieve_image_links()
         mock_glob.assert_called_once_with("images/*")
-        mock_builtin_open.assert_called_once_with("some_image.png", "rb")
 
 
-class TestGoogleDriveImageRetriever(TestCase):
+class TestGoogleDriveImageLinksRetriever(TestCase):
     def test_not_implemented(self):
         with self.assertRaises(NotImplementedError):
-            GoogleDriveImageRetriever().retrieve_images()
+            GoogleDriveImageLinksRetriever().retrieve_image_links()
