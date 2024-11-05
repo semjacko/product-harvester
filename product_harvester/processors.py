@@ -74,8 +74,8 @@ Example quantity units are: l, ml, g, kg, pcs.
 
     def process(self, image_links: list[str]) -> ProcessingResult:
         input_data = [self._make_input_data(image_link) for image_link in image_links]
-        chain = self._prompt | self._model | self._parser
         result = _ImageProcessingResult()
+        chain = self._prompt | self._model | self._parser
         chain = chain.with_listeners(on_error=result.add_error_from_run_tree)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=4), return_exceptions=True)
         result.set_products_from_outputs(outputs)
