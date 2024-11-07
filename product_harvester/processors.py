@@ -28,7 +28,12 @@ class ProcessingResult:
         return self._errors
 
 
-class _ImageProcessingResult(ProcessingResult):
+class ImageProcessor:
+    def process(self, image_links: list[str]) -> ProcessingResult:
+        raise NotImplementedError()
+
+
+class _PriceTagProcessingResult(ProcessingResult):
     def __init__(self):
         super().__init__([], [])
 
@@ -37,11 +42,6 @@ class _ImageProcessingResult(ProcessingResult):
 
     def add_error_from_run_tree(self, run_tree: RunTree):
         self._errors.append(ProcessingError(run_tree.inputs, run_tree.error))
-
-
-class ImageProcessor:
-    def process(self, image_links: list[str]) -> ProcessingResult:
-        raise NotImplementedError()
 
 
 class PriceTagImageProcessor(ImageProcessor):
@@ -74,7 +74,7 @@ Example quantity units are: l, ml, g, kg, pcs.
 
     def process(self, image_links: list[str]) -> ProcessingResult:
         input_data = [self._make_input_data(image_link) for image_link in image_links]
-        result = _ImageProcessingResult()
+        result = _PriceTagProcessingResult()
         chain = self._prompt | self._model | self._parser
         chain = chain.with_listeners(on_error=result.add_error_from_run_tree)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=4), return_exceptions=True)
