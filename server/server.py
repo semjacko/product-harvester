@@ -1,4 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
 from product_harvester.harvester import ProductsHarvester
@@ -11,8 +13,17 @@ from server.tracker import ErrorCollector
 api_app = FastAPI(title="Price tag images processing API")
 
 
+@api_app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_: Request, exc: RequestValidationError):
+    errors = [{"error": f"{err['loc'][1]}: validation error", "detailed_info": err["msg"]} for err in exc.errors()]
+    return JSONResponse(
+        status_code=422,
+        content={"message": "Validation Error", "detail": errors},
+    )
+
+
 @api_app.post("/process")
-def process(process_request: ProcessRequest) -> Product | None:
+async def process(process_request: ProcessRequest) -> Product | None:
     """
     Processes a base64 image to extract a data of a single product.
     Returns a Product instance or raises an HTTP 500 error if any processing error occurs.
