@@ -1,12 +1,17 @@
 from typing import List
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from langchain_core.language_models.fake_chat_models import FakeListChatModelError, FakeMessagesListChatModel
 from langchain_core.messages import BaseMessage
 from pydantic import TypeAdapter
 
-from product_harvester.processors import ImageProcessor, PriceTagImageProcessor, ProcessingResult
+from product_harvester.processors import (
+    _PriceTagProcessingResult,
+    ImageProcessor,
+    PriceTagImageProcessor,
+    ProcessingResult,
+)
 from product_harvester.product import Product
 
 
@@ -18,9 +23,10 @@ class TestImageProcessor(TestCase):
 
 class TestPriceTagImageProcessor(TestCase):
     class _TestProcessingError:
-        def __init__(self, input_image_link: str, error: str):
+        def __init__(self, input_image_link: str, msg: str, detailed_msg: str):
             self.input_image_link = input_image_link
-            self.error = error
+            self.msg = msg
+            self.detailed_msg = detailed_msg
 
     def setUp(self):
         self._fake_model = FakeMessagesListChatModel(responses=[])
@@ -30,8 +36,9 @@ class TestPriceTagImageProcessor(TestCase):
         self.assertEqual(products, result.products)
         self.assertEqual(len(errors), len(result.errors))
         for result_error, want_error in zip(result.errors, errors):
-            self.assertIn(want_error.error, result_error.error)
             self.assertEqual(result_error.input["image_link"], want_error.input_image_link)
+            self.assertEqual(want_error.msg, result_error.msg)
+            self.assertIn(want_error.detailed_msg, result_error.detailed_msg)
 
     def test_process_success(self):
         # language=JSON
@@ -56,8 +63,16 @@ class TestPriceTagImageProcessor(TestCase):
             result,
             [],
             [
-                self._TestProcessingError(input_image_link="/image1.jpg", error="OutputParserException"),
-                self._TestProcessingError(input_image_link="/image2.png", error="OutputParserException"),
+                self._TestProcessingError(
+                    input_image_link="/image1.jpg",
+                    msg="Failed during parsing of extracted data from image",
+                    detailed_msg="OutputParserException",
+                ),
+                self._TestProcessingError(
+                    input_image_link="/image2.png",
+                    msg="Failed during parsing of extracted data from image",
+                    detailed_msg="OutputParserException",
+                ),
             ],
         )
 
@@ -73,7 +88,13 @@ class TestPriceTagImageProcessor(TestCase):
         self._assert_result(
             result,
             [mock_valid_product],
-            [self._TestProcessingError(input_image_link="/image2.jpg", error="OutputParserException")],
+            [
+                self._TestProcessingError(
+                    input_image_link="/image2.jpg",
+                    msg="Failed during parsing of extracted data from image",
+                    detailed_msg="OutputParserException",
+                )
+            ],
         )
 
     def test_process_incomplete_product_response_from_model(self):
@@ -93,8 +114,16 @@ class TestPriceTagImageProcessor(TestCase):
             result,
             [mock_valid_product],
             [
-                self._TestProcessingError(input_image_link="/image1.jpeg", error="OutputParserException"),
-                self._TestProcessingError(input_image_link="/image3.jpg", error="OutputParserException"),
+                self._TestProcessingError(
+                    input_image_link="/image1.jpeg",
+                    msg="Failed during parsing of extracted data from image",
+                    detailed_msg="OutputParserException",
+                ),
+                self._TestProcessingError(
+                    input_image_link="/image3.jpg",
+                    msg="Failed during parsing of extracted data from image",
+                    detailed_msg="OutputParserException",
+                ),
             ],
         )
 
@@ -105,8 +134,34 @@ class TestPriceTagImageProcessor(TestCase):
         self._assert_result(
             result,
             [],
-            [self._TestProcessingError(input_image_link="/image1.png", error="FakeListChatModelError")],
+            [
+                self._TestProcessingError(
+                    input_image_link="/image1.png",
+                    msg="Failed during extraction data from image",
+                    detailed_msg="FakeListChatModelError",
+                )
+            ],
         )
+
+    def test_process_unknown_stage_exception(self):
+        self._fake_model = Mock()
+        self._fake_model.side_effect = FakeListChatModelError()
+
+        # Patch instantiation of the object, so it will be created with description just for the 1st (prompt) stage
+        mock_result = _PriceTagProcessingResult(["a"])
+        with patch("product_harvester.processors._PriceTagProcessingResult", return_value=mock_result):
+            result = PriceTagImageProcessor(self._fake_model).process(image_links=["/image1.png"])
+            self._assert_result(
+                result,
+                [],
+                [
+                    self._TestProcessingError(
+                        input_image_link="/image1.png",
+                        msg="Unknown failure",
+                        detailed_msg="FakeListChatModelError",
+                    )
+                ],
+            )
 
     @staticmethod
     def _prepare_fake_responses(contents: list[str]):

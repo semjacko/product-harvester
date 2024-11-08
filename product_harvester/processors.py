@@ -1,7 +1,7 @@
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables import RunnableConfig, RunnableSerializable
 from langchain_core.runnables.utils import Output
 from langsmith import RunTree
 
@@ -9,9 +9,10 @@ from product_harvester.product import Product
 
 
 class ProcessingError(Exception):
-    def __init__(self, input: dict, error: str):
+    def __init__(self, input: dict, msg: str, detailed_msg: str):
         self.input = input
-        self.error = error
+        self.msg = msg
+        self.detailed_msg = detailed_msg
 
 
 class ProcessingResult:
@@ -34,14 +35,23 @@ class ImageProcessor:
 
 
 class _PriceTagProcessingResult(ProcessingResult):
-    def __init__(self):
+    def __init__(self, chain_stage_descriptions: list[str]):
         super().__init__([], [])
+        self._chain_stage_descriptions = chain_stage_descriptions
 
     def set_products_from_outputs(self, outputs: list[Output]):
         self._products = [product for product in outputs if isinstance(product, Product)]
 
     def add_error_from_run_tree(self, run_tree: RunTree):
-        self._errors.append(ProcessingError(run_tree.inputs, run_tree.error))
+        for stage_index, stage in enumerate(run_tree.child_runs):
+            if stage.error:
+                msg = self._make_stage_error_msg(stage_index)
+                self._errors.append(ProcessingError(run_tree.inputs, msg, stage.error))
+
+    def _make_stage_error_msg(self, stage_index: int) -> str:
+        if stage_index >= len(self._chain_stage_descriptions):
+            return "Unknown failure"
+        return f"Failed during {self._chain_stage_descriptions[stage_index]}"
 
 
 class PriceTagImageProcessor(ImageProcessor):
@@ -74,12 +84,17 @@ Example quantity units are: l, ml, g, kg, pcs.
 
     def process(self, image_links: list[str]) -> ProcessingResult:
         input_data = [self._make_input_data(image_link) for image_link in image_links]
-        result = _PriceTagProcessingResult()
-        chain = self._prompt | self._model | self._parser
+        chain, descriptions = self._make_chain_with_stage_descriptions()
+        result = _PriceTagProcessingResult(descriptions)
         chain = chain.with_listeners(on_error=result.add_error_from_run_tree)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=4), return_exceptions=True)
         result.set_products_from_outputs(outputs)
         return result
+
+    def _make_chain_with_stage_descriptions(self) -> tuple[RunnableSerializable, list[str]]:
+        chain = self._prompt | self._model | self._parser
+        descriptions = ["prompt preparation", "extraction data from image", "parsing of extracted data from image"]
+        return chain, descriptions
 
     def _make_input_data(self, image_link: str) -> dict[str, str]:
         return {

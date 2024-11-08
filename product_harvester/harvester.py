@@ -46,7 +46,9 @@ class ProductsHarvester:
         try:
             image_links = self._retriever.retrieve_image_links()
         except Exception as e:
-            self._track_errors([HarvestError(str(e), {"info": "failed to retrieve image links"})])  # TODO: input
+            self._track_errors(
+                [HarvestError("Failed to retrieve image links", {"detailed_info": str(e)})]
+            )  # TODO: input
             return []
         return image_links
 
@@ -57,7 +59,11 @@ class ProductsHarvester:
             result = self._processor.process(image_links)
         except Exception as e:
             self._track_errors(
-                [HarvestError(str(e), {"input": image_links, "info": "failed to extract data from all images"})]
+                [
+                    HarvestError(
+                        "Failed to extract data from the images", {"input": image_links, "detailed_info": str(e)}
+                    )
+                ]
             )
             return None
         return result
@@ -70,7 +76,7 @@ class ProductsHarvester:
 
     def _track_processing_errors(self, processing_errors: list[ProcessingError]):
         errors = [
-            HarvestError(error.error, {"input": error.input, "info": "failed to extract data from single image"})
+            HarvestError(error.msg, {"input": error.input, "detailed_info": error.detailed_msg})
             for error in processing_errors
         ]
         self._track_errors(errors)

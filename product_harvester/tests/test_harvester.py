@@ -71,8 +71,8 @@ class TestProductsHarvester(TestCase):
         self._mock_processor.process.return_value = ProcessingResult(
             mock_products,
             [
-                ProcessingError({"link": "/wat.jpeg"}, "invalid image mocked error"),
-                ProcessingError({"link": "/wtf.png"}, "invalid JSON extracted mocked error"),
+                ProcessingError({"link": "/wat.jpeg"}, "invalid image mocked error", "some detailed message"),
+                ProcessingError({"link": "/wtf.png"}, "invalid JSON extracted mocked error", "other detailed message"),
             ],
         )
 
@@ -84,11 +84,14 @@ class TestProductsHarvester(TestCase):
             [
                 HarvestError(
                     "invalid image mocked error",
-                    {"input": {"link": "/wat.jpeg"}, "info": "failed to extract data from single image"},
+                    {
+                        "input": {"link": "/wat.jpeg"},
+                        "detailed_info": "some detailed message",
+                    },
                 ),
                 HarvestError(
                     "invalid JSON extracted mocked error",
-                    {"input": {"link": "/wtf.png"}, "info": "failed to extract data from single image"},
+                    {"input": {"link": "/wtf.png"}, "detailed_info": "other detailed message"},
                 ),
             ]
         )
@@ -112,7 +115,7 @@ class TestProductsHarvester(TestCase):
         self._mock_retriever.retrieve_image_links.assert_called_once()
         self._mock_processor.process.assert_not_called()
         self._mock_tracker.track_errors.assert_called_once_with(
-            [HarvestError("Something went wrong during retrieval", {"info": "failed to retrieve image links"})]
+            [HarvestError("Failed to retrieve image links", {"detailed_info": "Something went wrong during retrieval"})]
         )
         self.assertEqual(result, [])
 
@@ -128,8 +131,11 @@ class TestProductsHarvester(TestCase):
         self._mock_tracker.track_errors.assert_called_once_with(
             [
                 HarvestError(
-                    "Something went wrong during processing",
-                    {"input": ["/image1.png", "/image2.jpeg"], "info": "failed to extract data from all images"},
+                    "Failed to extract data from the images",
+                    {
+                        "input": ["/image1.png", "/image2.jpeg"],
+                        "detailed_info": "Something went wrong during processing",
+                    },
                 )
             ]
         )
