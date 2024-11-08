@@ -35,8 +35,11 @@ def _prepare_harvester(process_request: ProcessRequest, tracker: ErrorCollector)
 
 def _raise_error_if_any(tracker: ErrorCollector):
     if tracker.errors:
-        error_msgs = "\n".join(_truncate(error.msg) for error in tracker.errors)
-        raise HTTPException(status_code=500, detail=f"Processing errors occurred: {error_msgs}")
+        detail = [
+            {"error": error.msg, "detailed_info": _truncate(error.extra.get("detailed_info", ""))}
+            for error in tracker.errors
+        ]
+        raise HTTPException(status_code=500, detail=detail)
 
 
 def _truncate(s: str, length: int = 200) -> str:
