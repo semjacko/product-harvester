@@ -22,8 +22,8 @@ async def validation_exception_handler(_: Request, exc: RequestValidationError):
     )
 
 
-@api_app.post("/process")
-async def process(process_request: ProcessRequest) -> Product | None:
+@api_app.post("/process/pricetag")
+async def process_pricetag(process_request: ProcessRequest) -> Product | None:
     """
     Processes a base64 image to extract a data of a single product.
     Returns a Product instance or raises an HTTP 500 error if any processing error occurs.

@@ -33,7 +33,7 @@ async function submitForm() {
 
     try {
         // Make API request
-        const response = await fetch('/api/process', {
+        const response = await fetch('/api/process/pricetag', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
