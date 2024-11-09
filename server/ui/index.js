@@ -19,6 +19,7 @@ async function submitForm() {
     const apiKey = document.getElementById('api_key').value;
     const imageFile = document.getElementById('image_file').files[0];
     const responseDiv = document.getElementById('response');
+    const submitBtn = document.getElementById('submitBtn');
 
     // Clear any previous responses
     responseDiv.innerHTML = '';
@@ -31,13 +32,15 @@ async function submitForm() {
     // Convert image file to base64
     const base64Image = await toBase64(imageFile);
 
+    // Disable button and show loading text
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loader"></span> Extracting data from image, this may take a while...';
+
     try {
         // Make API request
         const response = await fetch('/api/process/pricetag', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: model,
                 api_key: apiKey,
@@ -54,17 +57,9 @@ async function submitForm() {
             let errorMessage = `<p style="color: red;">Errors:</p><ul style="color: red;">`;
             // Check if error.detail exists and is an array
             if (error && Array.isArray(error.detail)) {
-                // Iterate through each item in the error.detail array
-                error.detail.forEach((item, index) => {
+                error.detail.forEach((item) => {
                     if (item && typeof item === 'object') {
-                        // For each error object, display its error and detailed_info
-                        errorMessage += `
-                          <li>
-                            <p>
-                                ${item.error}<br>
-                                <strong>detailed_info:</strong> ${item.detailed_info}
-                            </p>
-                          </li>`;
+                        errorMessage += `<li><p>${item.error}<br><strong>detailed_info:</strong> ${item.detailed_info}</p></li>`;
                     }
                 });
             } else {
@@ -77,6 +72,10 @@ async function submitForm() {
         }
     } catch (error) {
         responseDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+    } finally {
+        // Re-enable button and reset text
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Process Image';
     }
 }
 

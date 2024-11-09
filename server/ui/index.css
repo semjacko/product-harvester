@@ -61,10 +61,30 @@ select, input[type="text"], input[type="file"] {
 .btn-submit:hover {
     background-color: #0056b3;
 }
+.btn-submit:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    color: #666;
+}
 .response {
     margin-top: 20px;
     padding: 10px;
     background-color: #e9ecef;
     border: 1px solid #ced4da;
     border-radius: 5px;
+}
+.loader {
+    border: 3px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 3px solid #3498db;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 10px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
