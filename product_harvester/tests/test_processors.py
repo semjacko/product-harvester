@@ -137,7 +137,7 @@ class TestPriceTagImageProcessor(TestCase):
             [
                 self._TestProcessingError(
                     input_image_link="/image1.png",
-                    msg="Failed during extraction data from image",
+                    msg="Failed during extracting data from image",
                     detailed_msg="FakeListChatModelError",
                 )
             ],

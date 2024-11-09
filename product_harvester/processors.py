@@ -93,7 +93,7 @@ Example quantity units are: l, ml, g, kg, pcs.
 
     def _make_chain_with_stage_descriptions(self) -> tuple[RunnableSerializable, list[str]]:
         chain = self._prompt | self._model | self._parser
-        descriptions = ["prompt preparation", "extraction data from image", "parsing of extracted data from image"]
+        descriptions = ["prompt preparation", "extracting data from image", "parsing of extracted data from image"]
         return chain, descriptions
 
     def _make_input_data(self, image_link: str) -> dict[str, str]:
