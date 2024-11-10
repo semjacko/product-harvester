@@ -21,9 +21,16 @@ class ErrorTracker:
 
 
 class ErrorLogger(ErrorTracker):
+    def __init__(self):
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(levelname)s: %(asctime)s %(message)s"))
+        self._logger = logging.getLogger()
+        self._logger.handlers = [handler]
+        self._logger.setLevel(logging.DEBUG)
+
     def track_errors(self, errors: list[HarvestError]):
         for error in errors:
-            logging.error(msg=error.msg, extra=error.extra)
+            self._logger.error(msg=error.msg, extra=error.extra)
 
 
 class ProductsHarvester:

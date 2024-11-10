@@ -3,6 +3,7 @@ from product_harvester.harvester import ErrorLogger, HarvestError
 
 class ErrorCollector(ErrorLogger):
     def __init__(self):
+        super().__init__()
         self.errors: list[HarvestError] = []
 
     def track_errors(self, errors: list[HarvestError]):
