@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import call, Mock, patch
+from unittest.mock import call, MagicMock, Mock
 
 from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester
 from product_harvester.processors import ProcessingError, ProcessingResult
@@ -13,26 +13,27 @@ class TestErrorTracker(TestCase):
 
 
 class TestErrorLogger(TestCase):
-    @patch("product_harvester.harvester.logging.error")
-    def test_empty(self, logger_mock):
-        ErrorLogger().track_errors([])
-        logger_mock.assert_not_called()
+    def setUp(self):
+        self._logger = ErrorLogger()
+        self._logger._logger = MagicMock()
 
-    @patch("product_harvester.harvester.logging.error")
-    def test_one_error(self, logger_mock):
-        ErrorLogger().track_errors([HarvestError("some message", {"info": "additional info"})])
-        logger_mock.assert_called_once_with(msg="some message", extra={"info": "additional info"})
+    def test_empty(self):
+        self._logger.track_errors([])
+        self._logger._logger.assert_not_called()
 
-    @patch("product_harvester.harvester.logging.error")
-    def test_multiple_errors(self, logger_mock):
-        ErrorLogger().track_errors(
+    def test_one_error(self):
+        self._logger.track_errors([HarvestError("some message", {"info": "additional info"})])
+        self._logger._logger.error.assert_called_once_with(msg="some message", extra={"info": "additional info"})
+
+    def test_multiple_errors(self):
+        self._logger.track_errors(
             [
                 HarvestError("some message", {"info": "additional info"}),
                 HarvestError("error with no extra"),
                 HarvestError("", {"extra": "only extra"}),
             ]
         )
-        logger_mock.assert_has_calls(
+        self._logger._logger.error.assert_has_calls(
             [
                 call(msg="some message", extra={"info": "additional info"}),
                 call(msg="error with no extra", extra=None),
