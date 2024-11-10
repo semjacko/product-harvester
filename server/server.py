@@ -10,7 +10,7 @@ from server.request import ProcessRequest
 from server.retriever import Base64Retriever
 from server.tracker import ErrorCollector
 
-api_app = FastAPI(title="Price tag images processing API")
+api_app = FastAPI(title="Product price images processing API")
 
 
 @api_app.exception_handler(RequestValidationError)
@@ -57,6 +57,6 @@ def _truncate(s: str, length: int = 200) -> str:
     return s[:length] + "..." if len(s) > length else s
 
 
-app = FastAPI(title="Price tag images data extractor")
+app = FastAPI(title="Product price images data extractor")
 app.mount("/api", api_app)
 app.mount("/", StaticFiles(directory="ui", html=True), name="ui")
