@@ -1,7 +1,7 @@
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableConfig, RunnableSerializable
+from langchain_core.runnables import RunnableConfig
 from langchain_core.runnables.utils import Output
 from langsmith import RunTree
 
@@ -81,20 +81,20 @@ Example quantity units are: l, ml, g, kg, pcs.
 
     def __init__(self, model: BaseChatModel):
         self._model = model
+        self._chain = self._prompt | self._model | self._parser
+        self._chain_stage_descriptions = [
+            "prompt preparation",
+            "extracting data from image",
+            "parsing of extracted data from image",
+        ]
 
     def process(self, image_links: list[str]) -> ProcessingResult:
         input_data = [self._make_input_data(image_link) for image_link in image_links]
-        chain, descriptions = self._make_chain_with_stage_descriptions()
-        result = _PriceTagProcessingResult(descriptions)
-        chain = chain.with_listeners(on_error=result.add_error_from_run_tree)
+        result = _PriceTagProcessingResult(self._chain_stage_descriptions)
+        chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=4), return_exceptions=True)
         result.set_products_from_outputs(outputs)
         return result
-
-    def _make_chain_with_stage_descriptions(self) -> tuple[RunnableSerializable, list[str]]:
-        chain = self._prompt | self._model | self._parser
-        descriptions = ["prompt preparation", "extracting data from image", "parsing of extracted data from image"]
-        return chain, descriptions
 
     def _make_input_data(self, image_link: str) -> dict[str, str]:
         return {
