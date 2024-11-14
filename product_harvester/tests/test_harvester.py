@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import TestCase
 from unittest.mock import call, MagicMock, Mock
 
@@ -51,10 +52,10 @@ class TestProductsHarvester(TestCase):
 
     def test_harvest_returns_products(self):
         mock_image_links = ["/image1.jpg", "/image2.png"]
-        self._mock_retriever.retrieve_image_links.return_value = yield from mock_image_links
+        self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
         mock_products = [
-            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99),
-            Product(name="Milk", qty=500, qty_unit="ml", price=0.99),
+            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode="abc"),
+            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode="123"),
         ]
         self._mock_processor.process.return_value = ProcessingResult(mock_products, [])
 
@@ -67,8 +68,8 @@ class TestProductsHarvester(TestCase):
 
     def test_harvest_returns_product_and_errors(self):
         mock_image_links = ["/image1.jpg", "/wat.jpeg", "/wtf.png"]
-        self._mock_retriever.retrieve_image_links.return_value = yield from mock_image_links
-        mock_products = [Product(name="Bread", qty=3, qty_unit="pcs", price=3.35)]
+        self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
+        mock_products = [Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode="abc")]
         self._mock_processor.process.return_value = ProcessingResult(
             mock_products,
             [
@@ -99,7 +100,7 @@ class TestProductsHarvester(TestCase):
         self.assertEqual(products, mock_products)
 
     def test_harvest_empty_retriever_result(self):
-        self._mock_retriever.retrieve_image_links.return_value = yield from []
+        self._mock_retriever.retrieve_image_links.return_value = self._yield_from([])
 
         result = self._harvester.harvest()
 
@@ -122,7 +123,7 @@ class TestProductsHarvester(TestCase):
 
     def test_harvest_processor_error(self):
         mock_image_links = ["/image1.png", "/image2.jpeg"]
-        self._mock_retriever.retrieve_image_links.return_value = yield from mock_image_links
+        self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
         self._mock_processor.process.side_effect = ValueError("Something went wrong during processing")
 
         result = self._harvester.harvest()
@@ -141,3 +142,7 @@ class TestProductsHarvester(TestCase):
             ]
         )
         self.assertEqual(result, [])
+
+    @staticmethod
+    def _yield_from(l: list[Any]):
+        yield from l
