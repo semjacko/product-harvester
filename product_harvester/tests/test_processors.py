@@ -45,11 +45,11 @@ class TestPriceTagImageProcessor(TestCase):
         mock_products = TypeAdapter(List[Product]).validate_json(
             """
             [
-                {"name": "Banana", "price": 3.45, "qty": 1, "qty_unit": "kg"},
-                {"name": "Bread", "price": 2.5, "qty": 3, "qty_unit": "pcs"},
-                {"name": "Milk", "price": 4.45, "qty": 1000, "qty_unit": "ml"}
+                {"name": "Banana", "price": 3.45, "qty": 1, "qty_unit": "kg", "barcode": "123", "tags": ["milk"]},
+                {"name": "Bread", "price": 2.5, "qty": 3, "qty_unit": "pcs", "barcode": "abc", "brand": "Rajo"},
+                {"name": "Milk", "price": 4.45, "qty": 1000, "qty_unit": "ml", "barcode": "1ac"}
             ]
-            """
+            """,
         )
         contents = [product.model_dump_json() for product in mock_products]
         self._fake_model.responses = self._prepare_fake_responses(contents)
@@ -77,7 +77,7 @@ class TestPriceTagImageProcessor(TestCase):
         )
 
     def test_process_invalid_response_json_from_model(self):
-        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg")
+        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode="abc")
         self._fake_model.responses = self._prepare_fake_responses(
             [
                 mock_valid_product.model_dump_json(),
@@ -98,7 +98,7 @@ class TestPriceTagImageProcessor(TestCase):
         )
 
     def test_process_incomplete_product_response_from_model(self):
-        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg")
+        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode="123")
         # language=JSON
         self._fake_model.responses = self._prepare_fake_responses(
             [

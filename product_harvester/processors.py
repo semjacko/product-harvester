@@ -60,8 +60,8 @@ class PriceTagImageProcessor(ImageProcessor):
             (
                 "system",
                 """
-From the image of a product price tag, extract the product's name, price, quantity, and unit of quantity.
-Example quantity units are: l, ml, g, kg, pcs.
+Extract product data from the image of a product price tag.
+As a tag, use from these categories: "voda", "jedlo", "ostatné".
 {format_instructions}
 """,
             ),
