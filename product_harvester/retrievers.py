@@ -1,9 +1,10 @@
 import os
 from glob import glob
+from typing import Generator
 
 
 class ImageLinksRetriever:
-    def retrieve_image_links(self) -> list[str]:
+    def retrieve_image_links(self) -> Generator[str, None, None]:
         raise NotImplementedError()
 
 
@@ -13,8 +14,8 @@ class LocalImageLinksRetriever(ImageLinksRetriever):
     def __init__(self, folder_path: str):
         self._folder_path = os.path.normpath(folder_path)
 
-    def retrieve_image_links(self) -> list[str]:
-        return self._retrieve_image_paths()
+    def retrieve_image_links(self) -> Generator[str, None, None]:
+        yield from self._retrieve_image_paths()
 
     def _retrieve_image_paths(self) -> list[str]:
         return [
@@ -27,6 +28,6 @@ class LocalImageLinksRetriever(ImageLinksRetriever):
 
 
 class GoogleDriveImageLinksRetriever(ImageLinksRetriever):
-    def retrieve_image_links(self) -> list[str]:
+    def retrieve_image_links(self) -> Generator[str, None, None]:
         # TODO
         raise NotImplementedError()

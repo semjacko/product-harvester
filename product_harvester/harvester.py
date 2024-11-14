@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Generator
 
 from product_harvester.processors import ImageProcessor, ProcessingError, ProcessingResult
 from product_harvester.product import Product
@@ -45,19 +45,37 @@ class ProductsHarvester:
         self._error_tracker = error_tracker
 
     def harvest(self) -> list[Product]:
-        image_links = self._retrieve_image_links()
-        result = self._process_images(image_links)
-        return self._extract_products_and_track_errors(result)
+        products: list[Product] = []
+        for image_links_batch in self._generate_image_link_batches():
+            result = self._process_images(image_links_batch)
+            products.extend(self._extract_products_and_track_errors(result))
+        return products
 
-    def _retrieve_image_links(self) -> list[str]:
+    def _generate_image_link_batches(self, batch_size: int = 8) -> Generator[list[str], None, None]:
         try:
-            image_links = self._retriever.retrieve_image_links()
+            image_links_generator = self._retriever.retrieve_image_links()
         except Exception as e:
-            self._track_errors(
-                [HarvestError("Failed to retrieve image links", {"detailed_info": str(e)})]
-            )  # TODO: input
-            return []
-        return image_links
+            self._track_errors([HarvestError("Failed to retrieve image links", {"detailed_info": str(e)})])
+            return
+        while True:
+            batch = self._make_image_links_batch(image_links_generator, batch_size)
+            if batch:
+                yield batch
+            if len(batch) < batch_size:
+                return
+
+    def _make_image_links_batch(self, generator: Generator[str, None, None], batch_size: int = 8) -> list[str]:
+        batch: list[str] = []
+        for i in range(batch_size):
+            try:
+                batch.append(next(generator))
+            except StopIteration:
+                break
+            except Exception as e:
+                self._track_errors(
+                    [HarvestError("Failed to retrieve image link", {"detailed_info": str(e)})]
+                )  # TODO: input
+        return batch
 
     def _process_images(self, image_links: list[str]) -> ProcessingResult | None:
         if not image_links:
