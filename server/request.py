@@ -43,7 +43,7 @@ class ProcessRequest(BaseModel):
         """
         match self.model:
             case "google":
-                return ChatGoogleGenerativeAI(model="gemini-1.5-pro", google_api_key=self.api_key)
+                return ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=self.api_key)
             case "openai":
                 return ChatOpenAI(model="gpt-4o", api_key=self.api_key)
             case _:
