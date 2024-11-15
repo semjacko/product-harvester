@@ -79,8 +79,9 @@ As a tag, use from these categories: "voda", "jedlo", "ostatné".
     )
     _parser = PydanticOutputParser(pydantic_object=Product)
 
-    def __init__(self, model: BaseChatModel):
+    def __init__(self, model: BaseChatModel, max_concurrency: int = 4):
         self._model = model
+        self._max_concurrency = max_concurrency
         self._chain = self._prompt | self._model | self._parser
         self._chain_stage_descriptions = [
             "prompt preparation",
@@ -92,7 +93,7 @@ As a tag, use from these categories: "voda", "jedlo", "ostatné".
         input_data = [self._make_input_data(image_link) for image_link in image_links]
         result = _PriceTagProcessingResult(self._chain_stage_descriptions)
         chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree)
-        outputs = chain.batch(input_data, RunnableConfig(max_concurrency=4), return_exceptions=True)
+        outputs = chain.batch(input_data, RunnableConfig(max_concurrency=self._max_concurrency), return_exceptions=True)
         result.set_products_from_outputs(outputs)
         return result
 
