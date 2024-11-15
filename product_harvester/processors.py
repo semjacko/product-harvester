@@ -61,7 +61,7 @@ class PriceTagImageProcessor(ImageProcessor):
                 "system",
                 """
 Extract product data from the image of a product price tag.
-As a tag, use from these categories: "voda", "jedlo", "ostatné".
+As a category, use from these: "voda", "jedlo", "ostatné".
 {format_instructions}
 """,
             ),

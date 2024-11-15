@@ -54,8 +54,8 @@ class TestProductsHarvester(TestCase):
         mock_image_links = ["/image1.jpg", "/image2.png"]
         self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
         mock_products = [
-            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode="abc"),
-            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode="123"),
+            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="fruit"),
+            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode=66053, category="milk"),
         ]
         self._mock_processor.process.return_value = ProcessingResult(mock_products, [])
 
@@ -69,7 +69,7 @@ class TestProductsHarvester(TestCase):
     def test_harvest_returns_product_and_errors(self):
         mock_image_links = ["/image1.jpg", "/wat.jpeg", "/wtf.png"]
         self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
-        mock_products = [Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode="abc")]
+        mock_products = [Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode=123, category="food")]
         self._mock_processor.process.return_value = ProcessingResult(
             mock_products,
             [

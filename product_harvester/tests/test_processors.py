@@ -2,6 +2,7 @@ from typing import List
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.language_models.fake_chat_models import FakeListChatModelError, FakeMessagesListChatModel
 from langchain_core.messages import BaseMessage
 from pydantic import TypeAdapter
@@ -28,10 +29,6 @@ class TestPriceTagImageProcessor(TestCase):
             self.msg = msg
             self.detailed_msg = detailed_msg
 
-    def setUp(self):
-        self._fake_model = FakeMessagesListChatModel(responses=[])
-        self._processor = PriceTagImageProcessor(self._fake_model)
-
     def _assert_result(self, result: ProcessingResult, products: list[Product], errors: list[_TestProcessingError]):
         self.assertEqual(products, result.products)
         self.assertEqual(len(errors), len(result.errors))
@@ -45,20 +42,22 @@ class TestPriceTagImageProcessor(TestCase):
         mock_products = TypeAdapter(List[Product]).validate_json(
             """
             [
-                {"name": "Banana", "price": 3.45, "qty": 1, "qty_unit": "kg", "barcode": "123", "tags": ["milk"]},
-                {"name": "Bread", "price": 2.5, "qty": 3, "qty_unit": "pcs", "barcode": "abc", "brand": "Rajo"},
-                {"name": "Milk", "price": 4.45, "qty": 1000, "qty_unit": "ml", "barcode": "1ac"}
+                {"name": "Banana", "price": 3.45, "qty": 1, "qty_unit": "kg", "barcode": 123, "category": "fruit"},
+                {"name": "Bread", "price": 2.5, "qty": 3, "qty_unit": "pcs", "barcode": 345, "brand": "Rajo", "category": "fruit"},
+                {"name": "Milk", "price": 4.45, "qty": 1000, "qty_unit": "ml", "barcode": 567, "category": "milk"}
             ]
             """,
         )
-        contents = [product.model_dump_json() for product in mock_products]
-        self._fake_model.responses = self._prepare_fake_responses(contents)
-        result = self._processor.process(image_links=["/image1.jpg", "/image2.png", "/image3.jpg"])
+        responses = [product.model_dump_json() for product in mock_products]
+        fake_model = self._prepare_fake_model_with_responses(responses)
+        processor = self._prepare_processor(fake_model)
+        result = processor.process(image_links=["/image1.jpg", "/image2.png", "/image3.jpg"])
         self._assert_result(result, mock_products, [])
 
     def test_process_empty_response_from_model(self):
-        self._fake_model.responses = self._prepare_fake_responses([""] * 2)
-        result = self._processor.process(image_links=["/image1.jpg", "/image2.png"])
+        fake_model = self._prepare_fake_model_with_responses([""] * 2)
+        processor = self._prepare_processor(fake_model)
+        result = processor.process(image_links=["/image1.jpg", "/image2.png"])
         self._assert_result(
             result,
             [],
@@ -77,14 +76,15 @@ class TestPriceTagImageProcessor(TestCase):
         )
 
     def test_process_invalid_response_json_from_model(self):
-        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode="abc")
-        self._fake_model.responses = self._prepare_fake_responses(
+        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
+        fake_model = self._prepare_fake_model_with_responses(
             [
                 mock_valid_product.model_dump_json(),
                 "{wat",
             ]
         )
-        result = PriceTagImageProcessor(self._fake_model).process(image_links=["/image1.jpg", "/image2.jpg"])
+        processor = self._prepare_processor(fake_model)
+        result = processor.process(image_links=["/image1.jpg", "/image2.jpg"])
         self._assert_result(
             result,
             [mock_valid_product],
@@ -98,18 +98,17 @@ class TestPriceTagImageProcessor(TestCase):
         )
 
     def test_process_incomplete_product_response_from_model(self):
-        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode="123")
+        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
         # language=JSON
-        self._fake_model.responses = self._prepare_fake_responses(
+        fake_model = self._prepare_fake_model_with_responses(
             [
                 '{"name":"Bread", "price":3.45}',
                 mock_valid_product.model_dump_json(),
                 '{"qty":2, "qty_unit":"pcs"}',
             ]
         )
-        result = PriceTagImageProcessor(self._fake_model).process(
-            image_links=["/image1.jpeg", "/image2.jpg", "/image3.jpg"]
-        )
+        processor = self._prepare_processor(fake_model)
+        result = processor.process(image_links=["/image1.jpeg", "/image2.jpg", "/image3.jpg"])
         self._assert_result(
             result,
             [mock_valid_product],
@@ -128,9 +127,10 @@ class TestPriceTagImageProcessor(TestCase):
         )
 
     def test_process_model_exception(self):
-        self._fake_model = Mock()
-        self._fake_model.side_effect = FakeListChatModelError()
-        result = PriceTagImageProcessor(self._fake_model).process(image_links=["/image1.png"])
+        fake_model = Mock()
+        fake_model.side_effect = FakeListChatModelError()
+        processor = self._prepare_processor(fake_model)
+        result = processor.process(image_links=["/image1.png"])
         self._assert_result(
             result,
             [],
@@ -144,13 +144,14 @@ class TestPriceTagImageProcessor(TestCase):
         )
 
     def test_process_unknown_stage_exception(self):
-        self._fake_model = Mock()
-        self._fake_model.side_effect = FakeListChatModelError()
+        fake_model = Mock()
+        fake_model.side_effect = FakeListChatModelError()
+        processor = PriceTagImageProcessor(fake_model, max_concurrency=1)
 
         # Patch instantiation of the object, so it will be created with description just for the 1st (prompt) stage
         mock_result = _PriceTagProcessingResult(["a"])
         with patch("product_harvester.processors._PriceTagProcessingResult", return_value=mock_result):
-            result = PriceTagImageProcessor(self._fake_model).process(image_links=["/image1.png"])
+            result = processor.process(image_links=["/image1.png"])
             self._assert_result(
                 result,
                 [],
@@ -164,5 +165,11 @@ class TestPriceTagImageProcessor(TestCase):
             )
 
     @staticmethod
-    def _prepare_fake_responses(contents: list[str]):
-        return [BaseMessage(content=content, type="str") for content in contents]
+    def _prepare_fake_model_with_responses(responses: list[str]):
+        return FakeMessagesListChatModel(
+            responses=[BaseMessage(content=response, type="str") for response in responses]
+        )
+
+    @staticmethod
+    def _prepare_processor(model: BaseChatModel) -> PriceTagImageProcessor:
+        return PriceTagImageProcessor(model, max_concurrency=1)
