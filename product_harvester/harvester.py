@@ -1,7 +1,8 @@
 import logging
 from typing import Any, Generator
 
-from product_harvester.processors import ImageProcessor, ProcessingError, ProcessingResult
+from product_harvester.importer import ProductsImporter, ImportedProduct
+from product_harvester.processors import ProcessingError, ProcessingResult, ImageProcessor
 from product_harvester.product import Product
 from product_harvester.retrievers import ImageLinksRetriever
 
@@ -38,18 +39,19 @@ class ProductsHarvester:
         self,
         retriever: ImageLinksRetriever,
         processor: ImageProcessor,
+        importer: ProductsImporter,
         error_tracker: ErrorTracker = ErrorLogger(),
     ):
         self._retriever = retriever
         self._processor = processor
+        self._importer = importer
         self._error_tracker = error_tracker
 
-    def harvest(self) -> list[Product]:
-        products: list[Product] = []
+    def harvest(self):
         for image_links_batch in self._generate_image_link_batches():
             result = self._process_images(image_links_batch)
-            products.extend(self._extract_products_and_track_errors(result))
-        return products
+            products = self._extract_products_and_track_errors(result)
+            self._import_products(products)
 
     def _generate_image_link_batches(self, batch_size: int = 8) -> Generator[list[str], None, None]:
         try:
@@ -59,8 +61,7 @@ class ProductsHarvester:
             return
         while True:
             batch = self._make_image_links_batch(image_links_generator, batch_size)
-            if batch:
-                yield batch
+            yield batch
             if len(batch) < batch_size:
                 return
 
@@ -98,6 +99,24 @@ class ProductsHarvester:
             return []
         self._track_processing_errors(result.errors)
         return result.products
+
+    def _import_products(self, products: list[Product]):
+        for product in products:
+            self._import_product(product)
+
+    def _import_product(self, product: Product):
+        try:
+            shop_id = 1  # TODO
+            imported_product = ImportedProduct.from_product(product, shop_id)
+            self._importer.import_product(imported_product)
+        except Exception as e:
+            self._track_errors(
+                [
+                    HarvestError(
+                        "Failed to to import extracted product data", {"input": product, "detailed_info": str(e)}
+                    )
+                ]
+            )
 
     def _track_processing_errors(self, processing_errors: list[ProcessingError]):
         errors = [

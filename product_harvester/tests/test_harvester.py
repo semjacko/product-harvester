@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import call, MagicMock, Mock
 
 from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester
+from product_harvester.importer import ImportedProduct
 from product_harvester.processors import ProcessingError, ProcessingResult
 from product_harvester.product import Product
 
@@ -47,10 +48,13 @@ class TestProductsHarvester(TestCase):
     def setUp(self):
         self._mock_retriever = Mock()
         self._mock_processor = Mock()
+        self._mock_importer = Mock()
         self._mock_tracker = Mock()
-        self._harvester = ProductsHarvester(self._mock_retriever, self._mock_processor, self._mock_tracker)
+        self._harvester = ProductsHarvester(
+            self._mock_retriever, self._mock_processor, self._mock_importer, self._mock_tracker
+        )
 
-    def test_harvest_returns_products(self):
+    def test_harvest_imports_products(self):
         mock_image_links = ["/image1.jpg", "/image2.png"]
         self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
         mock_products = [
@@ -59,14 +63,15 @@ class TestProductsHarvester(TestCase):
         ]
         self._mock_processor.process.return_value = ProcessingResult(mock_products, [])
 
-        products = self._harvester.harvest()
+        self._harvester.harvest()
 
         self._mock_retriever.retrieve_image_links.assert_called_once()
         self._mock_processor.process.assert_called_once_with(mock_image_links)
         self._mock_tracker.track_errors.assert_not_called()
-        self.assertEqual(products, mock_products)
+        want_calls = [call(ImportedProduct.from_product(mock_product, 1)) for mock_product in mock_products]
+        self._mock_importer.import_product.assert_has_calls(want_calls)
 
-    def test_harvest_returns_product_and_errors(self):
+    def test_harvest_imports_products_and_tracks_errors(self):
         mock_image_links = ["/image1.jpg", "/wat.jpeg", "/wtf.png"]
         self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
         mock_products = [Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode=123, category="food")]
@@ -78,7 +83,7 @@ class TestProductsHarvester(TestCase):
             ],
         )
 
-        products = self._harvester.harvest()
+        self._harvester.harvest()
 
         self._mock_retriever.retrieve_image_links.assert_called_once()
         self._mock_processor.process.assert_called_once_with(mock_image_links)
@@ -97,36 +102,37 @@ class TestProductsHarvester(TestCase):
                 ),
             ]
         )
-        self.assertEqual(products, mock_products)
+        want_calls = [call(ImportedProduct.from_product(mock_product, 1)) for mock_product in mock_products]
+        self._mock_importer.import_product.assert_has_calls(want_calls)
 
     def test_harvest_empty_retriever_result(self):
         self._mock_retriever.retrieve_image_links.return_value = self._yield_from([])
 
-        result = self._harvester.harvest()
+        self._harvester.harvest()
 
         self._mock_retriever.retrieve_image_links.assert_called_once()
         self._mock_processor.process.assert_not_called()
         self._mock_tracker.track_errors.assert_not_called()
-        self.assertEqual(result, [])
+        self._mock_importer.import_product.assert_not_called()
 
     def test_harvest_retriever_error(self):
         self._mock_retriever.retrieve_image_links.side_effect = ValueError("Something went wrong during retrieval")
 
-        result = self._harvester.harvest()
+        self._harvester.harvest()
 
         self._mock_retriever.retrieve_image_links.assert_called_once()
         self._mock_processor.process.assert_not_called()
         self._mock_tracker.track_errors.assert_called_once_with(
             [HarvestError("Failed to retrieve image links", {"detailed_info": "Something went wrong during retrieval"})]
         )
-        self.assertEqual(result, [])
+        self._mock_importer.import_product.assert_not_called()
 
     def test_harvest_processor_error(self):
         mock_image_links = ["/image1.png", "/image2.jpeg"]
         self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
         self._mock_processor.process.side_effect = ValueError("Something went wrong during processing")
 
-        result = self._harvester.harvest()
+        self._harvester.harvest()
 
         self._mock_retriever.retrieve_image_links.assert_called_once()
         self._mock_processor.process.assert_called_once_with(mock_image_links)
@@ -141,7 +147,7 @@ class TestProductsHarvester(TestCase):
                 )
             ]
         )
-        self.assertEqual(result, [])
+        self._mock_importer.import_product.assert_not_called()
 
     @staticmethod
     def _yield_from(l: list[Any]):
