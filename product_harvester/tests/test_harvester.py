@@ -1,6 +1,6 @@
 from typing import Any
 from unittest import TestCase
-from unittest.mock import call, MagicMock, Mock
+from unittest.mock import call, Mock
 
 from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester
 from product_harvester.importer import ImportedProduct
@@ -17,7 +17,7 @@ class TestErrorTracker(TestCase):
 class TestErrorLogger(TestCase):
     def setUp(self):
         self._logger = ErrorLogger()
-        self._logger._logger = MagicMock()
+        self._logger._logger = Mock()
 
     def test_empty(self):
         self._logger.track_errors([])
@@ -58,8 +58,8 @@ class TestProductsHarvester(TestCase):
         mock_image_links = ["/image1.jpg", "/image2.png"]
         self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
         mock_products = [
-            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="fruit"),
-            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode=66053, category="milk"),
+            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo"),
+            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode=66053, category="voda"),
         ]
         self._mock_processor.process.return_value = ProcessingResult(mock_products, [])
 
@@ -74,7 +74,7 @@ class TestProductsHarvester(TestCase):
     def test_harvest_imports_products_and_tracks_errors(self):
         mock_image_links = ["/image1.jpg", "/wat.jpeg", "/wtf.png"]
         self._mock_retriever.retrieve_image_links.return_value = self._yield_from(mock_image_links)
-        mock_products = [Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode=123, category="food")]
+        mock_products = [Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode=123, category="jedlo")]
         self._mock_processor.process.return_value = ProcessingResult(
             mock_products,
             [

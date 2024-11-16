@@ -12,7 +12,7 @@ class ImportedProductDetail(BaseModel):
     amount: float = Field(strict=True, gt=0)
     brand: str = Field(strict=True, default="")
     unit: Literal["l", "kg", "pcs"] = Field()
-    category_id: int = Field(strict=True, ge=0)
+    category_id: int = Field(strict=True, gt=0)
 
 
 class ImportedProduct(BaseModel):
@@ -63,7 +63,8 @@ class ProductsImporter:
 
 
 class APIProductsImporter(ProductsImporter):
-    def __init__(self, base_url: str = "https://dolacna-admin-api.default.offli.eu"):
+    def __init__(self, token: str, base_url: str = "https://dolacna-admin-api.default.offli.eu"):
+        self._token = token
         self._endpoint = f"{base_url}/products"
         self._session = requests.Session()
 
@@ -71,7 +72,8 @@ class APIProductsImporter(ProductsImporter):
         # TODO: Exceptions
         try:
             data = product.model_dump()
-            response = self._session.post(self._endpoint, json=data, headers={"userId": "1"})
+            headers = {"user-id": self._token}
+            response = self._session.post(self._endpoint, json=data, headers=headers)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             raise e
