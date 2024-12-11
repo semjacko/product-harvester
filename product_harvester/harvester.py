@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Generator
 
-from product_harvester.importer import ProductsImporter, ImportedProduct
+from product_harvester.importers import ProductsImporter, ImportedProduct
 from product_harvester.processors import ProcessingError, ProcessingResult, ImageProcessor
 from product_harvester.product import Product
 from product_harvester.retrievers import ImageLinksRetriever

@@ -3,7 +3,7 @@ from unittest import TestCase
 from unittest.mock import call, Mock
 
 from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester
-from product_harvester.importer import ImportedProduct
+from product_harvester.importers import ImportedProduct
 from product_harvester.processors import ProcessingError, ProcessingResult
 from product_harvester.product import Product
 

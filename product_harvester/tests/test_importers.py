@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import requests
 from pydantic import ValidationError
 
-from product_harvester.importer import ImportedProduct, ImportedProductDetail, ProductsImporter, APIProductsImporter
+from product_harvester.importers import ImportedProduct, ImportedProductDetail, ProductsImporter, APIProductsImporter
 from product_harvester.product import Product
 
 
@@ -99,7 +99,7 @@ class TestAPIProductsImporter(TestCase):
         )
         self._imported_product_json = self._imported_product.model_dump()
 
-    @patch("product_harvester.importer.requests.Session.post")
+    @patch("product_harvester.importers.requests.Session.post")
     def test_import_product_success(self, mock_post):
         mock_response = Mock()
         mock_response.raise_for_status.return_value = None
@@ -110,7 +110,7 @@ class TestAPIProductsImporter(TestCase):
         )
         mock_response.raise_for_status.assert_called_once()
 
-    @patch("product_harvester.importer.requests.Session.post")
+    @patch("product_harvester.importers.requests.Session.post")
     def test_import_product_invalid_token(self, mock_post):
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("401 Unauthorized")
@@ -121,7 +121,7 @@ class TestAPIProductsImporter(TestCase):
             f"{self._base_url}/products", json=self._imported_product_json, headers={"user-id": self._token}
         )
 
-    @patch("product_harvester.importer.requests.Session.post")
+    @patch("product_harvester.importers.requests.Session.post")
     def test_import_product_generic_exception(self, mock_post):
         mock_post.side_effect = Exception("Generic Exception")
         with self.assertRaises(Exception):

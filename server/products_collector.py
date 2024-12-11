@@ -1,4 +1,4 @@
-from product_harvester.importer import ProductsImporter, ImportedProduct
+from product_harvester.importers import ProductsImporter, ImportedProduct
 from product_harvester.product import Product
 
 
