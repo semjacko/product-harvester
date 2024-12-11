@@ -4,7 +4,12 @@ from unittest.mock import Mock, patch
 import requests
 from pydantic import ValidationError
 
-from product_harvester.importers import ImportedProduct, ImportedProductDetail, ProductsImporter, APIProductsImporter
+from product_harvester.importers import (
+    ImportedProduct,
+    ImportedProductDetail,
+    ProductsImporter,
+    DoLacnaAPIProductsImporter,
+)
 from product_harvester.product import Product
 
 
@@ -84,7 +89,7 @@ class TestAPIProductsImporter(TestCase):
     def setUp(self):
         self._token = "test_token"
         self._base_url = "https://test-api.example.com"
-        self._importer = APIProductsImporter(token=self._token, base_url=self._base_url)
+        self._importer = DoLacnaAPIProductsImporter(token=self._token, base_url=self._base_url)
         self._imported_product = ImportedProduct(
             product=ImportedProductDetail(
                 barcode=123,

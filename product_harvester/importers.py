@@ -62,7 +62,7 @@ class ProductsImporter:
         raise NotImplementedError()
 
 
-class APIProductsImporter(ProductsImporter):
+class DoLacnaAPIProductsImporter(ProductsImporter):
     def __init__(self, token: str, base_url: str = "https://dolacna-admin-api.default.offli.eu"):
         self._token = token
         self._endpoint = f"{base_url}/products"
