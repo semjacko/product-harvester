@@ -3,7 +3,6 @@ from unittest import TestCase
 from unittest.mock import call, Mock
 
 from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester
-from product_harvester.importers import ImportedProduct
 from product_harvester.processors import ProcessingError, ProcessingResult
 from product_harvester.product import Product
 
@@ -68,7 +67,7 @@ class TestProductsHarvester(TestCase):
         self._mock_retriever.retrieve_image_links.assert_called_once()
         self._mock_processor.process.assert_called_once_with(mock_image_links)
         self._mock_tracker.track_errors.assert_not_called()
-        want_calls = [call(ImportedProduct.from_product(mock_product, 1)) for mock_product in mock_products]
+        want_calls = [call(mock_product) for mock_product in mock_products]
         self._mock_importer.import_product.assert_has_calls(want_calls)
 
     def test_harvest_imports_products_and_tracks_errors(self):
@@ -102,7 +101,7 @@ class TestProductsHarvester(TestCase):
                 ),
             ]
         )
-        want_calls = [call(ImportedProduct.from_product(mock_product, 1)) for mock_product in mock_products]
+        want_calls = [call(mock_product) for mock_product in mock_products]
         self._mock_importer.import_product.assert_has_calls(want_calls)
 
     def test_harvest_empty_retriever_result(self):
