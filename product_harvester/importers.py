@@ -6,7 +6,12 @@ from pydantic import BaseModel, Field
 from product_harvester.product import Product
 
 
-class ImportedProductDetail(BaseModel):
+class ProductsImporter:
+    def import_product(self, product: Product):
+        raise NotImplementedError()
+
+
+class _DoLacnaAPIProductDetail(BaseModel):
     barcode: int = Field(strict=True, gt=0)
     name: str = Field(strict=True, min_length=1)
     amount: float = Field(strict=True, gt=0)
@@ -15,22 +20,22 @@ class ImportedProductDetail(BaseModel):
     category_id: int = Field(strict=True, gt=0)
 
 
-class ImportedProduct(BaseModel):
+class _DoLacnaAPIProduct(BaseModel):
     _category_id_mapping: ClassVar = {
         "voda": 1,
         "jedlo": 2,
         "ostatné": 3,
     }
 
-    product: ImportedProductDetail = Field(strict=True)
+    product: _DoLacnaAPIProductDetail = Field(strict=True)
     price: float = Field(strict=True, gt=0)
     shop_id: int = Field(strict=True, gt=0)
 
     @classmethod
     def from_product(cls, product: Product, shop_id: int) -> Self:
         unit, amount = cls._convert_unit(product)
-        return ImportedProduct(
-            product=ImportedProductDetail(
+        return _DoLacnaAPIProduct(
+            product=_DoLacnaAPIProductDetail(
                 barcode=product.barcode,
                 name=product.name,
                 amount=amount,
@@ -57,21 +62,18 @@ class ImportedProduct(BaseModel):
         return cls._category_id_mapping.get(category, 0)
 
 
-class ProductsImporter:
-    def import_product(self, product: ImportedProduct):
-        raise NotImplementedError()
-
-
 class DoLacnaAPIProductsImporter(ProductsImporter):
-    def __init__(self, token: str, base_url: str = "https://dolacna-admin-api.default.offli.eu"):
+    def __init__(self, token: str, shop_id: int, base_url: str = "https://dolacna-admin-api.default.offli.eu"):
         self._token = token
+        self._shop_id = shop_id
         self._endpoint = f"{base_url}/products"
         self._session = requests.Session()
 
-    def import_product(self, product: ImportedProduct):
+    def import_product(self, product: Product):
         # TODO: Exceptions
         try:
-            data = product.model_dump()
+            imported_product = _DoLacnaAPIProduct.from_product(product, shop_id=self._shop_id)
+            data = imported_product.model_dump()
             headers = {"user-id": self._token}
             response = self._session.post(self._endpoint, json=data, headers=headers)
             response.raise_for_status()

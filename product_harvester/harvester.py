@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Generator
 
-from product_harvester.importers import ProductsImporter, ImportedProduct
+from product_harvester.importers import ProductsImporter
 from product_harvester.processors import ProcessingError, ProcessingResult, ImageProcessor
 from product_harvester.product import Product
 from product_harvester.retrievers import ImageLinksRetriever
@@ -106,9 +106,7 @@ class ProductsHarvester:
 
     def _import_product(self, product: Product):
         try:
-            shop_id = 1  # TODO
-            imported_product = ImportedProduct.from_product(product, shop_id)
-            self._importer.import_product(imported_product)
+            self._importer.import_product(product)
         except Exception as e:
             self._track_errors(
                 [
