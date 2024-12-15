@@ -20,7 +20,7 @@ This design allows components to be easily replaced with existing solutions or c
 ```python
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from product_harvester.harvester import ProductsHarvester
+from product_harvester.harvester import ErrorLogger, ProductsHarvester
 from product_harvester.importers import DoLacnaAPIProductsImporter
 from product_harvester.processors import PriceTagImageProcessor
 from product_harvester.retrievers import LocalImageLinksRetriever
@@ -28,7 +28,8 @@ from product_harvester.retrievers import LocalImageLinksRetriever
 retriever = LocalImageLinksRetriever("./path/to/images")
 processor = PriceTagImageProcessor(ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key="<api_key>"))
 importer = DoLacnaAPIProductsImporter(token="<api_token>", shop_id=1)
-harvester = ProductsHarvester(retriever, processor, importer)
+logger = ErrorLogger()
+harvester = ProductsHarvester(retriever, processor, importer, logger)
 
 harvester.harvest() # Will extract the data from price tag images and import them via specific API.
 ```
