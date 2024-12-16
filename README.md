@@ -12,9 +12,10 @@ Product Harvester is modular and consists of 4 key components, each providing a 
   - **ProductsImporter** - Handles importing of extracted data through an API (or directly into the database).
   - **ErrorTracker** - Tracks (or logs) the errors encountered throughout the harvesting process.
 
-This design allows components to be easily replaced with existing solutions or custom adapters to suit specific needs.
+This design allows components to be easily replaced with existing solutions or custom strategies (or adapters) 
+to suit specific needs.
 
-![image](https://github.com/user-attachments/assets/e8f3ed9d-6c16-43b4-8d73-6ef84ffc4804)
+![image](https://github.com/user-attachments/assets/8310e461-30a0-4d39-bfe4-8887ea4e7da9)
 
 # Example usage
 ```python
@@ -37,7 +38,7 @@ harvester.harvest() # Will extract the data from price tag images and import the
 ## Example server
 A simple example of a [server](server/server.py) that demonstrates how to use **Product Harvester** to extract
 structured data from uploaded image files can be found in the [server folder](server).
-It implements its own custom adapters for each component except **ImageProcessor** (for which it utilizes existing
+It implements its own custom strategies for each component except **ImageProcessor** (for which it utilizes existing
 **PriceTagImageProcessor**):
   - **ImageLinksRetriever** - implemented by [Base64Retriever](server/retriever.py)
   - **ProductsImporter** -> implemented by [ProductsCollector](server/products_collector.py)
