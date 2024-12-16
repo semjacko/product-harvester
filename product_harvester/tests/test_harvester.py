@@ -1,8 +1,8 @@
 from typing import Any
 from unittest import TestCase
-from unittest.mock import call, Mock
+from unittest.mock import call, Mock, patch
 
-from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester
+from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester, ErrorPrinter
 from product_harvester.processors import ProcessingError, ProcessingResult
 from product_harvester.product import Product
 
@@ -11,6 +11,19 @@ class TestErrorTracker(TestCase):
     def test_not_implemented(self):
         with self.assertRaises(NotImplementedError):
             ErrorTracker().track_errors([])
+
+
+class TestErrorPrinter(TestCase):
+
+    @patch("builtins.print")
+    def test_print_errors(self, print_mock):
+        errs = [
+            HarvestError("example message", {"info": "additional"}),
+            HarvestError("error with no extra"),
+            HarvestError("", {"extra": "only extra"}),
+        ]
+        ErrorPrinter().track_errors(errs)
+        print_mock.assert_has_calls([call(err) for err in errs])
 
 
 class TestErrorLogger(TestCase):

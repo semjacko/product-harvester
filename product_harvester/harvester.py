@@ -21,6 +21,12 @@ class ErrorTracker:
         raise NotImplementedError()
 
 
+class ErrorPrinter(ErrorTracker):
+    def track_errors(self, errors: list[HarvestError]):
+        for error in errors:
+            print(error)
+
+
 class ErrorLogger(ErrorTracker):
     def __init__(self):
         handler = logging.StreamHandler()
