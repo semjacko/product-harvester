@@ -11,6 +11,11 @@ class ProductsImporter:
         raise NotImplementedError()
 
 
+class StdOutProductsImporter(ProductsImporter):
+    def import_product(self, product: Product):
+        print(product)
+
+
 class _DoLacnaAPIProductDetail(BaseModel):
     barcode: int = Field(strict=True, gt=0)
     name: str = Field(strict=True, min_length=1)

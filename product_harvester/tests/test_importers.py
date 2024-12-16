@@ -9,6 +9,7 @@ from product_harvester.importers import (
     _DoLacnaAPIProductDetail,
     ProductsImporter,
     DoLacnaAPIProductsImporter,
+    StdOutProductsImporter,
 )
 from product_harvester.product import Product
 
@@ -82,6 +83,24 @@ class TestProductsImporter(TestCase):
         product = Product(name="Milk", qty=1500, qty_unit="ml", price=1, barcode=123, brand="Rajo", category="voda")
         with self.assertRaises(NotImplementedError):
             ProductsImporter().import_product(product)
+
+
+class TestStdOutProductsImporter(TestCase):
+    def setUp(self):
+        self._product = Product(
+            name="Bananas",
+            qty=1.5,
+            qty_unit="kg",
+            price=1.45,
+            brand="Clever",
+            barcode=123,
+            category="jedlo",
+        )
+
+    @patch("builtins.print")
+    def test_print_imported_product_success(self, print_mock):
+        StdOutProductsImporter().import_product(self._product)
+        print_mock.assert_called_once_with(self._product)
 
 
 class TestAPIProductsImporter(TestCase):
