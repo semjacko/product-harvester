@@ -6,3 +6,6 @@ fastapi[standard]~=0.115.4
 starlette~=0.41.2
 langchain-openai~=0.2.4
 requests~=2.32.3
+protobuf~=5.28.3
+google-auth-oauthlib~=1.2.1
+google-api-python-client~=2.157.0
