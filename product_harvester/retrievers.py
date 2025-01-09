@@ -51,7 +51,7 @@ class _GoogleDriveClient:
         self._credentials: Credentials | None = None
         self._files_service: Resource | None = None
 
-    def _ensure_credentials(self):
+    def ensure_credentials(self):
         if self._has_valid_credentials():
             return
         elif self._can_refresh_credentials():
@@ -84,7 +84,7 @@ class _GoogleDriveClient:
         page_offset_token: str | None = None,
         batch_size: int = 8,
     ) -> tuple[list[_GoogleDriveFileInfo], str | None]:
-        self._ensure_credentials()
+        self.ensure_credentials()
         request = self._files_service.list(
             pageSize=batch_size, q=query, fields="nextPageToken, files(id, mimeType)", pageToken=page_offset_token
         )
@@ -95,7 +95,7 @@ class _GoogleDriveClient:
         return files, result.get("nextPageToken", None)
 
     def download_file_content(self, file: _GoogleDriveFileInfo) -> str:
-        self._ensure_credentials()
+        self.ensure_credentials()
         request = self._files_service.get_media(fileId=file.id)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
