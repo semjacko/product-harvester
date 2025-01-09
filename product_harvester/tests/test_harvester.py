@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import call, Mock, patch
+from unittest.mock import call, Mock, patch, MagicMock
 
 from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester, ErrorPrinter
 from product_harvester.processors import ProcessingError, ProcessingResult
@@ -138,6 +138,21 @@ class TestProductsHarvester(TestCase):
         )
         self._mock_importer.import_product.assert_not_called()
 
+    def test_harvest_retriever_generator_error(self):
+        image_links = MagicMock()
+        image_links.__next__.side_effect = ["/image1.jpg", ValueError("Some error")]
+        self._mock_retriever.retrieve_image_links.return_value = image_links
+        mock_product = Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo")
+        self._mock_processor.process.return_value = ProcessingResult([mock_product], [])
+        self._harvester.harvest()
+
+        self._mock_retriever.retrieve_image_links.assert_called_once()
+        self._mock_processor.process.assert_called_once_with(["/image1.jpg"])
+        self._mock_tracker.track_errors.assert_called_once_with(
+            [HarvestError("Failed to retrieve image link", {"detailed_info": "Some error"})]
+        )
+        self._mock_importer.import_product.assert_called_once_with(mock_product)
+
     def test_harvest_processor_error(self):
         mock_image_links = ["/image1.png", "/image2.jpeg"]
         self._mock_retriever.retrieve_image_links.return_value = iter(mock_image_links)
@@ -159,3 +174,33 @@ class TestProductsHarvester(TestCase):
             ]
         )
         self._mock_importer.import_product.assert_not_called()
+
+    def test_harvest_importer_error(self):
+        mock_image_links = ["/image1.jpg", "/image2.png"]
+        self._mock_retriever.retrieve_image_links.return_value = iter(mock_image_links)
+        mock_products = [
+            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo"),
+            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode=66053, category="voda"),
+        ]
+        self._mock_processor.process.return_value = ProcessingResult(mock_products, [])
+        self._mock_importer.import_product.side_effect = [ValueError("Some importing error"), None]
+
+        self._harvester.harvest()
+
+        self._mock_retriever.retrieve_image_links.assert_called_once()
+        self._mock_processor.process.assert_called_once_with(mock_image_links)
+        self._mock_tracker.track_errors.assert_called_once_with(
+            [
+                HarvestError(
+                    "Failed to to import extracted product data",
+                    {
+                        "input": Product(
+                            name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, brand="", category="jedlo"
+                        ),
+                        "detailed_info": "Some importing error",
+                    },
+                )
+            ]
+        )
+        want_calls = [call(mock_product) for mock_product in mock_products]
+        self._mock_importer.import_product.assert_has_calls(want_calls)
