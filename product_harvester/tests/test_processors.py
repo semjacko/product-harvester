@@ -40,13 +40,11 @@ class TestPriceTagImageProcessor(TestCase):
     def test_process_success(self):
         # language=JSON
         mock_products = TypeAdapter(List[Product]).validate_json(
-            """
-            [
-                {"name": "Banana", "price": 3.45, "qty": 1, "qty_unit": "kg", "barcode": 123, "category": "fruit"},
-                {"name": "Bread", "price": 2.5, "qty": 3, "qty_unit": "pcs", "barcode": 345, "brand": "Rajo", "category": "fruit"},
-                {"name": "Milk", "price": 4.45, "qty": 1000, "qty_unit": "ml", "barcode": 567, "category": "milk"}
-            ]
-            """,
+            """[
+    {"name": "Banana", "price": 3.45, "qty": 1, "qty_unit": "kg", "barcode": 123, "category": "fruit"},
+    {"name": "Bread", "price": 2.5, "qty": 3, "qty_unit": "pcs", "barcode": 345, "brand": "Rajo", "category": "fruit"},
+    {"name": "Milk", "price": 4.45, "qty": 1000, "qty_unit": "ml", "barcode": 567, "category": "milk"}
+            ]""",
         )
         responses = [product.model_dump_json() for product in mock_products]
         fake_model = self._prepare_fake_model_with_responses(responses)
