@@ -66,8 +66,8 @@ class TestProductsHarvester(TestCase):
         )
 
     def test_harvest_imports_products(self):
-        mock_image_links = ["/image1.jpg", "/image2.png"]
-        self._mock_retriever.retrieve_image_links.return_value = iter(mock_image_links)
+        mock_images = ["/image1.jpg", "/image2.png"]
+        self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         mock_products = [
             Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo"),
             Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode=66053, category="voda"),
@@ -76,40 +76,40 @@ class TestProductsHarvester(TestCase):
 
         self._harvester.harvest()
 
-        self._mock_retriever.retrieve_image_links.assert_called_once()
-        self._mock_processor.process.assert_called_once_with(mock_image_links)
+        self._mock_retriever.retrieve_images.assert_called_once()
+        self._mock_processor.process.assert_called_once_with(mock_images)
         self._mock_tracker.track_errors.assert_not_called()
         want_calls = [call(mock_product) for mock_product in mock_products]
         self._mock_importer.import_product.assert_has_calls(want_calls)
 
     def test_harvest_imports_products_and_tracks_errors(self):
-        mock_image_links = ["/image1.jpg", "/wat.jpeg", "/wtf.png"]
-        self._mock_retriever.retrieve_image_links.return_value = iter(mock_image_links)
+        mock_images = ["/image1.jpg", "/wat.jpeg", "/wtf.png"]
+        self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         mock_products = [Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode=123, category="jedlo")]
         self._mock_processor.process.return_value = ProcessingResult(
             mock_products,
             [
-                ProcessingError({"link": "/wat.jpeg"}, "invalid image mocked error", "some detailed message"),
-                ProcessingError({"link": "/wtf.png"}, "invalid JSON extracted mocked error", "other detailed message"),
+                ProcessingError({"image": "/wat.jpeg"}, "invalid image mocked error", "some detailed message"),
+                ProcessingError({"image": "/wtf.png"}, "invalid JSON extracted mocked error", "other detailed message"),
             ],
         )
 
         self._harvester.harvest()
 
-        self._mock_retriever.retrieve_image_links.assert_called_once()
-        self._mock_processor.process.assert_called_once_with(mock_image_links)
+        self._mock_retriever.retrieve_images.assert_called_once()
+        self._mock_processor.process.assert_called_once_with(mock_images)
         self._mock_tracker.track_errors.assert_called_once_with(
             [
                 HarvestError(
                     "invalid image mocked error",
                     {
-                        "input": {"link": "/wat.jpeg"},
+                        "input": {"image": "/wat.jpeg"},
                         "detailed_info": "some detailed message",
                     },
                 ),
                 HarvestError(
                     "invalid JSON extracted mocked error",
-                    {"input": {"link": "/wtf.png"}, "detailed_info": "other detailed message"},
+                    {"input": {"image": "/wtf.png"}, "detailed_info": "other detailed message"},
                 ),
             ]
         )
@@ -117,51 +117,51 @@ class TestProductsHarvester(TestCase):
         self._mock_importer.import_product.assert_has_calls(want_calls)
 
     def test_harvest_empty_retriever_result(self):
-        self._mock_retriever.retrieve_image_links.return_value = iter([])
+        self._mock_retriever.retrieve_images.return_value = iter([])
 
         self._harvester.harvest()
 
-        self._mock_retriever.retrieve_image_links.assert_called_once()
+        self._mock_retriever.retrieve_images.assert_called_once()
         self._mock_processor.process.assert_not_called()
         self._mock_tracker.track_errors.assert_not_called()
         self._mock_importer.import_product.assert_not_called()
 
     def test_harvest_retriever_error(self):
-        self._mock_retriever.retrieve_image_links.side_effect = ValueError("Something went wrong during retrieval")
+        self._mock_retriever.retrieve_images.side_effect = ValueError("Something went wrong during retrieval")
 
         self._harvester.harvest()
 
-        self._mock_retriever.retrieve_image_links.assert_called_once()
+        self._mock_retriever.retrieve_images.assert_called_once()
         self._mock_processor.process.assert_not_called()
         self._mock_tracker.track_errors.assert_called_once_with(
-            [HarvestError("Failed to retrieve image links", {"detailed_info": "Something went wrong during retrieval"})]
+            [HarvestError("Failed to retrieve images", {"detailed_info": "Something went wrong during retrieval"})]
         )
         self._mock_importer.import_product.assert_not_called()
 
     def test_harvest_retriever_generator_error(self):
-        image_links = MagicMock()
-        image_links.__next__.side_effect = ["/image1.jpg", ValueError("Some error")]
-        self._mock_retriever.retrieve_image_links.return_value = image_links
+        mock_images = MagicMock()
+        mock_images.__next__.side_effect = ["/image1.jpg", ValueError("Some error")]
+        self._mock_retriever.retrieve_images.return_value = mock_images
         mock_product = Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo")
         self._mock_processor.process.return_value = ProcessingResult([mock_product], [])
         self._harvester.harvest()
 
-        self._mock_retriever.retrieve_image_links.assert_called_once()
+        self._mock_retriever.retrieve_images.assert_called_once()
         self._mock_processor.process.assert_called_once_with(["/image1.jpg"])
         self._mock_tracker.track_errors.assert_called_once_with(
-            [HarvestError("Failed to retrieve image link", {"detailed_info": "Some error"})]
+            [HarvestError("Failed to retrieve image", {"detailed_info": "Some error"})]
         )
         self._mock_importer.import_product.assert_called_once_with(mock_product)
 
     def test_harvest_processor_error(self):
-        mock_image_links = ["/image1.png", "/image2.jpeg"]
-        self._mock_retriever.retrieve_image_links.return_value = iter(mock_image_links)
+        mock_images = ["/image1.png", "/image2.jpeg"]
+        self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         self._mock_processor.process.side_effect = ValueError("Something went wrong during processing")
 
         self._harvester.harvest()
 
-        self._mock_retriever.retrieve_image_links.assert_called_once()
-        self._mock_processor.process.assert_called_once_with(mock_image_links)
+        self._mock_retriever.retrieve_images.assert_called_once()
+        self._mock_processor.process.assert_called_once_with(mock_images)
         self._mock_tracker.track_errors.assert_called_once_with(
             [
                 HarvestError(
@@ -176,8 +176,8 @@ class TestProductsHarvester(TestCase):
         self._mock_importer.import_product.assert_not_called()
 
     def test_harvest_importer_error(self):
-        mock_image_links = ["/image1.jpg", "/image2.png"]
-        self._mock_retriever.retrieve_image_links.return_value = iter(mock_image_links)
+        mock_images = ["/image1.jpg", "/image2.png"]
+        self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         mock_products = [
             Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo"),
             Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode=66053, category="voda"),
@@ -187,8 +187,8 @@ class TestProductsHarvester(TestCase):
 
         self._harvester.harvest()
 
-        self._mock_retriever.retrieve_image_links.assert_called_once()
-        self._mock_processor.process.assert_called_once_with(mock_image_links)
+        self._mock_retriever.retrieve_images.assert_called_once()
+        self._mock_processor.process.assert_called_once_with(mock_images)
         self._mock_tracker.track_errors.assert_called_once_with(
             [
                 HarvestError(

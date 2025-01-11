@@ -11,18 +11,18 @@ from googleapiclient.discovery import Resource, build
 from googleapiclient.http import MediaIoBaseDownload
 
 
-class ImageLinksRetriever:
-    def retrieve_image_links(self) -> Generator[str, None, None]:
+class ImagesRetriever:
+    def retrieve_images(self) -> Generator[str, None, None]:
         raise NotImplementedError()
 
 
-class LocalImageLinksRetriever(ImageLinksRetriever):
+class LocalImagesRetriever(ImagesRetriever):
     _image_extensions = (".jpg", ".jpeg", ".png")
 
     def __init__(self, folder_path: str):
         self._folder_path = os.path.normpath(folder_path)
 
-    def retrieve_image_links(self) -> Generator[str, None, None]:
+    def retrieve_images(self) -> Generator[str, None, None]:
         yield from self._retrieve_image_paths()
 
     def _retrieve_image_paths(self) -> list[str]:
@@ -106,7 +106,7 @@ class _GoogleDriveClient:
         return f"data:{file.mime_type};base64,{content}"
 
 
-class GoogleDriveImageLinksRetriever(ImageLinksRetriever):
+class GoogleDriveImagesRetriever(ImagesRetriever):
 
     def __init__(self, client_config: dict[str, Any], folder_id: str):
         self._client = _GoogleDriveClient(client_config)
@@ -115,6 +115,6 @@ class GoogleDriveImageLinksRetriever(ImageLinksRetriever):
     def set_folder(self, folder_id: str):
         self._folder_id = folder_id
 
-    def retrieve_image_links(self) -> Generator[str, None, None]:
+    def retrieve_images(self) -> Generator[str, None, None]:
         for file in self._client.get_image_files_info(self._folder_id):
             yield self._client.download_file_content(file)

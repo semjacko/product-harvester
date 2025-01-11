@@ -30,7 +30,7 @@ class ProcessingResult:
 
 
 class ImageProcessor:
-    def process(self, image_links: list[str]) -> ProcessingResult:
+    def process(self, images: list[str]) -> ProcessingResult:
         raise NotImplementedError()
 
 
@@ -70,7 +70,7 @@ As a category, use from these: "voda", "jedlo", "ostatné".
                 [
                     {
                         "type": "image_url",
-                        "image_url": {"url": "{image_link}"},
+                        "image_url": {"url": "{image}"},
                     },
                     {"type": "text", "text": "process_image"},
                 ],
@@ -89,16 +89,16 @@ As a category, use from these: "voda", "jedlo", "ostatné".
             "parsing of extracted data from image",
         ]
 
-    def process(self, image_links: list[str]) -> ProcessingResult:
-        input_data = [self._make_input_data(image_link) for image_link in image_links]
+    def process(self, images: list[str]) -> ProcessingResult:
+        input_data = [self._make_input_data(image) for image in images]
         result = _PriceTagProcessingResult(self._chain_stage_descriptions)
         chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=self._max_concurrency), return_exceptions=True)
         result.set_products_from_outputs(outputs)
         return result
 
-    def _make_input_data(self, image_link: str) -> dict[str, str]:
+    def _make_input_data(self, image: str) -> dict[str, str]:
         return {
-            "image_link": image_link,
+            "image": image,
             "format_instructions": self._parser.get_format_instructions(),
         }

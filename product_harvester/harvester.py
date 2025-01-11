@@ -4,7 +4,7 @@ from typing import Any, Generator
 from product_harvester.importers import ProductsImporter
 from product_harvester.processors import ProcessingError, ProcessingResult, ImageProcessor
 from product_harvester.product import Product
-from product_harvester.retrievers import ImageLinksRetriever
+from product_harvester.retrievers import ImagesRetriever
 
 
 class HarvestError(Exception):
@@ -43,7 +43,7 @@ class ErrorLogger(ErrorTracker):
 class ProductsHarvester:
     def __init__(
         self,
-        retriever: ImageLinksRetriever,
+        retriever: ImagesRetriever,
         processor: ImageProcessor,
         importer: ProductsImporter,
         error_tracker: ErrorTracker = ErrorLogger(),
@@ -54,24 +54,24 @@ class ProductsHarvester:
         self._error_tracker = error_tracker
 
     def harvest(self):
-        for image_links_batch in self._generate_image_link_batches():
-            result = self._process_images(image_links_batch)
+        for images_batch in self._generate_image_batches():
+            result = self._process_images(images_batch)
             products = self._extract_products_and_track_errors(result)
             self._import_products(products)
 
-    def _generate_image_link_batches(self, batch_size: int = 8) -> Generator[list[str], None, None]:
+    def _generate_image_batches(self, batch_size: int = 8) -> Generator[list[str], None, None]:
         try:
-            image_links_generator = self._retriever.retrieve_image_links()
+            images_generator = self._retriever.retrieve_images()
         except Exception as e:
-            self._track_errors([HarvestError("Failed to retrieve image links", {"detailed_info": str(e)})])
+            self._track_errors([HarvestError("Failed to retrieve images", {"detailed_info": str(e)})])
             return
         while True:
-            batch = self._make_image_links_batch(image_links_generator, batch_size)
+            batch = self._make_images_batch(images_generator, batch_size)
             yield batch
             if len(batch) < batch_size:
                 return
 
-    def _make_image_links_batch(self, generator: Generator[str, None, None], batch_size: int = 8) -> list[str]:
+    def _make_images_batch(self, generator: Generator[str, None, None], batch_size: int = 8) -> list[str]:
         batch: list[str] = []
         for i in range(batch_size):
             try:
@@ -79,23 +79,17 @@ class ProductsHarvester:
             except StopIteration:
                 break
             except Exception as e:
-                self._track_errors(
-                    [HarvestError("Failed to retrieve image link", {"detailed_info": str(e)})]
-                )  # TODO: input
+                self._track_errors([HarvestError("Failed to retrieve image", {"detailed_info": str(e)})])  # TODO: input
         return batch
 
-    def _process_images(self, image_links: list[str]) -> ProcessingResult | None:
-        if not image_links:
+    def _process_images(self, images: list[str]) -> ProcessingResult | None:
+        if not images:
             return None
         try:
-            result = self._processor.process(image_links)
+            result = self._processor.process(images)
         except Exception as e:
             self._track_errors(
-                [
-                    HarvestError(
-                        "Failed to extract data from the images", {"input": image_links, "detailed_info": str(e)}
-                    )
-                ]
+                [HarvestError("Failed to extract data from the images", {"input": images, "detailed_info": str(e)})]
             )
             return None
         return result
