@@ -21,7 +21,7 @@ class ErrorTracker:
         raise NotImplementedError()
 
 
-class ErrorPrinter(ErrorTracker):
+class StdOutErrorTracker(ErrorTracker):
     def track_errors(self, errors: list[HarvestError]):
         for error in errors:
             print(error)

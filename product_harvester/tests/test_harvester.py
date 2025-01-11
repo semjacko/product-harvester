@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import call, Mock, patch, MagicMock
 
-from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester, ErrorPrinter
+from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester, StdOutErrorTracker
 from product_harvester.processors import ProcessingError, ProcessingResult
 from product_harvester.product import Product
 
@@ -12,7 +12,7 @@ class TestErrorTracker(TestCase):
             ErrorTracker().track_errors([])
 
 
-class TestErrorPrinter(TestCase):
+class TestStdOutErrorTracker(TestCase):
 
     @patch("builtins.print")
     def test_print_errors(self, print_mock):
@@ -21,7 +21,7 @@ class TestErrorPrinter(TestCase):
             HarvestError("error with no extra"),
             HarvestError("", {"extra": "only extra"}),
         ]
-        ErrorPrinter().track_errors(errs)
+        StdOutErrorTracker().track_errors(errs)
         print_mock.assert_has_calls([call(err) for err in errs])
 
 

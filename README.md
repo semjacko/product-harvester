@@ -16,7 +16,7 @@ Product Harvester is modular and consists of 4 key components, each providing a 
 This design allows components to be easily replaced with existing solutions or custom strategies (or adapters) 
 to suit specific needs.
 
-![image](https://github.com/user-attachments/assets/35048bdb-68e4-4ff4-a744-f6c5afa36a8a)
+![image](https://github.com/user-attachments/assets/9dd03d59-8535-471c-80a6-9a8f835518bc)
 
 # Usage
 ## Step 1: Install Dependencies
@@ -31,7 +31,7 @@ pip install -r requirements.txt
 ```python
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from product_harvester.harvester import ErrorLogger, ProductsHarvester
+from product_harvester.harvester import ProductsHarvester, StdOutErrorTracker
 from product_harvester.importers import StdOutProductsImporter
 from product_harvester.processors import PriceTagImageProcessor
 from product_harvester.retrievers import LocalImagesRetriever
@@ -39,7 +39,7 @@ from product_harvester.retrievers import LocalImagesRetriever
 retriever = LocalImagesRetriever("./path/to/images/folder")
 processor = PriceTagImageProcessor(ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key="<api_key>"))
 printer = StdOutProductsImporter()
-logger = ErrorLogger()
+logger = StdOutErrorTracker()
 harvester = ProductsHarvester(retriever, processor, importer=printer, error_tracker=logger)
 
 harvester.harvest()
