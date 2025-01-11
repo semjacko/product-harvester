@@ -75,7 +75,6 @@ class DoLacnaAPIProductsImporter(ProductsImporter):
         self._session = requests.Session()
 
     def import_product(self, product: Product):
-        # TODO: Exceptions
         try:
             imported_product = _DoLacnaAPIProduct.from_product(product, shop_id=self._shop_id)
             data = imported_product.model_dump()

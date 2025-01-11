@@ -28,7 +28,7 @@ from product_harvester.importers import DoLacnaAPIProductsImporter
 from product_harvester.processors import PriceTagImageProcessor
 from product_harvester.retrievers import LocalImagesRetriever
 
-retriever = LocalImagesRetriever("./path/to/images")
+retriever = LocalImagesRetriever("./path/to/images/folder")
 processor = PriceTagImageProcessor(ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key="<api_key>"))
 importer = DoLacnaAPIProductsImporter(token="<api_token>", shop_id=1)
 logger = ErrorLogger()
