@@ -10,6 +10,7 @@ from product_harvester.importers import (
     ProductsImporter,
     DoLacnaAPIProductsImporter,
     StdOutProductsImporter,
+    _DoLacnaClient,
 )
 from product_harvester.product import Product
 
@@ -103,11 +104,52 @@ class TestStdOutProductsImporter(TestCase):
         print_mock.assert_called_once_with(self._product)
 
 
-class TestAPIProductsImporter(TestCase):
+class TestDoLacnaClient(TestCase):
     def setUp(self):
         self._token = "test_token"
-        self._base_url = "https://test-api.example.com"
-        self._importer = DoLacnaAPIProductsImporter(token=self._token, shop_id=12, base_url=self._base_url)
+        self._client = _DoLacnaClient(token=self._token)
+        self._imported_product = _DoLacnaAPIProduct(
+            product=_DoLacnaAPIProductDetail(
+                barcode=123,
+                name="Bananas",
+                amount=1.5,
+                brand="Clever",
+                unit="kg",
+                category_id=3,
+            ),
+            price=1.45,
+            shop_id=12,
+        )
+        self._imported_product_json = self._imported_product.model_dump()
+        self._mock_response = Mock()
+
+    @patch("product_harvester.importers.requests.Session.post")
+    def test_import_product_success(self, mock_post):
+        self._mock_response.raise_for_status.return_value = None
+        mock_post.return_value = self._mock_response
+        self._client.import_product(self._imported_product)
+        mock_post.assert_called_once_with(
+            _DoLacnaClient._import_endpoint, json=self._imported_product_json, headers={"user-id": self._token}
+        )
+        self._mock_response.raise_for_status.assert_called_once()
+
+    @patch("product_harvester.importers.requests.Session.post")
+    def test_import_product_invalid_token(self, mock_post):
+        self._mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("401 Unauthorized")
+        mock_post.return_value = self._mock_response
+        with self.assertRaises(requests.exceptions.HTTPError):
+            self._client.import_product(self._imported_product)
+        mock_post.assert_called_once_with(
+            _DoLacnaClient._import_endpoint, json=self._imported_product_json, headers={"user-id": self._token}
+        )
+
+    def tearDown(self):
+        self._client._session.close()
+
+
+class TestDoLacnaAPIProductsImporter(TestCase):
+    def setUp(self):
+        self._token = "test_token"
         self._product = Product(
             name="Bananas",
             qty=1.5,
@@ -117,38 +159,21 @@ class TestAPIProductsImporter(TestCase):
             barcode=123,
             category="jedlo",
         )
-        self._imported_product_json = _DoLacnaAPIProduct.from_product(self._product, 12).model_dump()
+        self._shop_id = 12
+        self._imported_product = _DoLacnaAPIProduct.from_product(self._product, self._shop_id)
 
-    @patch("product_harvester.importers.requests.Session.post")
-    def test_import_product_success(self, mock_post):
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_post.return_value = mock_response
-        self._importer.import_product(self._product)
-        mock_post.assert_called_once_with(
-            f"{self._base_url}/products", json=self._imported_product_json, headers={"user-id": self._token}
-        )
-        mock_response.raise_for_status.assert_called_once()
+    @patch("product_harvester.importers._DoLacnaClient")
+    def test_import_product_success(self, mocked_client):
+        mock_client = mocked_client.return_value
+        DoLacnaAPIProductsImporter(token=self._token, shop_id=self._shop_id).import_product(self._product)
+        mocked_client.assert_called_once_with(self._token)
+        mock_client.import_product.assert_called_once_with(self._imported_product)
 
-    @patch("product_harvester.importers.requests.Session.post")
-    def test_import_product_invalid_token(self, mock_post):
-        mock_response = Mock()
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("401 Unauthorized")
-        mock_post.return_value = mock_response
-        with self.assertRaises(requests.exceptions.HTTPError):
-            self._importer.import_product(self._product)
-        mock_post.assert_called_once_with(
-            f"{self._base_url}/products", json=self._imported_product_json, headers={"user-id": self._token}
-        )
-
-    @patch("product_harvester.importers.requests.Session.post")
-    def test_import_product_generic_exception(self, mock_post):
-        mock_post.side_effect = Exception("Generic Exception")
-        with self.assertRaises(Exception):
-            self._importer.import_product(self._product)
-        mock_post.assert_called_once_with(
-            f"{self._base_url}/products", json=self._imported_product_json, headers={"user-id": self._token}
-        )
-
-    def tearDown(self):
-        self._importer._session.close()
+    @patch("product_harvester.importers._DoLacnaClient")
+    def test_import_product_failure(self, mocked_client):
+        mock_client = mocked_client.return_value
+        mock_client.import_product.side_effect = ValueError("Some error")
+        with self.assertRaises(ValueError):
+            DoLacnaAPIProductsImporter(token=self._token, shop_id=self._shop_id).import_product(self._product)
+        mocked_client.assert_called_once_with(self._token)
+        mock_client.import_product.assert_called_once_with(self._imported_product)

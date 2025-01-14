@@ -67,21 +67,29 @@ class _DoLacnaAPIProduct(BaseModel):
         return cls._category_id_mapping.get(category, 0)
 
 
-class DoLacnaAPIProductsImporter(ProductsImporter):
-    def __init__(self, token: str, shop_id: int, base_url: str = "https://dolacna-admin-api.default.offli.eu"):
+class _DoLacnaClient:
+    _base_url: str = "https://dolacna-admin-api.default.offli.eu"
+    _import_endpoint = f"{_base_url}/products"
+
+    def __init__(self, token: str):
         self._token = token
-        self._shop_id = shop_id
-        self._endpoint = f"{base_url}/products"
         self._session = requests.Session()
+
+    def import_product(self, product: _DoLacnaAPIProduct):
+        data = product.model_dump()
+        headers = {"user-id": self._token}
+        response = self._session.post(self._import_endpoint, json=data, headers=headers)
+        response.raise_for_status()
+
+
+class DoLacnaAPIProductsImporter(ProductsImporter):
+    def __init__(self, token: str, shop_id: int):
+        self._shop_id = shop_id
+        self._client = _DoLacnaClient(token)
 
     def import_product(self, product: Product):
         try:
             imported_product = _DoLacnaAPIProduct.from_product(product, shop_id=self._shop_id)
-            data = imported_product.model_dump()
-            headers = {"user-id": self._token}
-            response = self._session.post(self._endpoint, json=data, headers=headers)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            raise e
+            self._client.import_product(imported_product)
         except Exception as e:
             raise e
