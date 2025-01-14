@@ -191,6 +191,7 @@ class TestGoogleDriveImagesRetriever(TestCase):
         test_contents = ["/some/binary", "/another/binary"]
         mock_client.download_file_content.side_effect = test_contents
         retriever = GoogleDriveImagesRetriever(self._test_client_config, self._test_folder_id)
+        mocked_client.assert_called_once_with(self._test_client_config)
         self.assertEqual(list(retriever.retrieve_images()), test_contents)
         mock_client.get_image_files_info.assert_called_once_with(self._test_folder_id)
         mock_client.download_file_content.assert_has_calls([call(test_file) for test_file in test_files])
@@ -203,6 +204,7 @@ class TestGoogleDriveImagesRetriever(TestCase):
         test_contents = ["/some/binary"]
         mock_client.download_file_content.side_effect = test_contents
         retriever = GoogleDriveImagesRetriever(self._test_client_config, self._test_folder_id)
+        mocked_client.assert_called_once_with(self._test_client_config)
         retriever.set_folder("other_folder")
         self.assertEqual(list(retriever.retrieve_images()), test_contents)
         mock_client.get_image_files_info.assert_called_once_with("other_folder")
@@ -215,6 +217,7 @@ class TestGoogleDriveImagesRetriever(TestCase):
         mock_client.get_image_files_info.return_value = iter([test_file])
         mock_client.download_file_content.side_effect = ValueError("Some error")
         retriever = GoogleDriveImagesRetriever(self._test_client_config, self._test_folder_id)
+        mocked_client.assert_called_once_with(self._test_client_config)
         with self.assertRaisesRegex(ValueError, "Some error"):
             list(retriever.retrieve_images())
         mock_client.get_image_files_info.assert_called_once_with(self._test_folder_id)
