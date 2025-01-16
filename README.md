@@ -1,22 +1,28 @@
 [![codecov](https://codecov.io/gh/semjacko/product-harvester/graph/badge.svg?token=2891N9XPTH)](https://codecov.io/gh/semjacko/product-harvester)
 
 # Product Harvester
-Product Harvester is a tool designed for extracting key product information from price tag images.
-It extracts data such as product name, price, quantity, barcode...
+Product Harvester is a tool designed to extract key product information from price tag images, such as product name, 
+price, quantity, barcode...   
+It can be used for automated bulk processing of price tag images stored either locally or on Google Drive (depending 
+on the selected `ImagesRetriever` implementation). The extracted structured data can be imported via API or printed 
+to the standard output (depending on the selected `ProductsImporter` implementation).
+
+![example](https://github.com/user-attachments/assets/5e100b8c-a897-407a-9b89-ef46a3823ef7)
+
 
 # Architecture
 Product Harvester is modular and consists of 4 key components, each providing a simple and interchangeable interface:
-  - **ImagesRetriever** - Responsible for generating images (links or base64 encoded) that serve as inputs 
+  - `ImagesRetriever` - Responsible for generating images (links or base64 encoded) that serve as inputs 
   for further processing.
-  - **ImageProcessor** - Utilizes LLMs to analyze and extract structured product data (e.g., name, price, barcode) 
+  - `ImageProcessor` - Utilizes LLMs to analyze and extract structured product data (e.g., name, price, barcode) 
   from batches of price tag images.
-  - **ProductsImporter** - Handles importing of extracted data through an API (or directly into the database).
-  - **ErrorTracker** - Tracks (or logs) the errors encountered throughout the harvesting process.
+  - `ProductsImporter` - Handles importing of extracted data through an API (or directly into the database).
+  - `ErrorTracker` - Tracks (or logs) the errors encountered throughout the harvesting process.
 
 This design allows components to be easily replaced with existing solutions or custom strategies (or adapters) 
 to suit specific needs.
 
-![image](https://github.com/user-attachments/assets/9dd03d59-8535-471c-80a6-9a8f835518bc)
+![architecture](https://github.com/user-attachments/assets/9dd03d59-8535-471c-80a6-9a8f835518bc)
 
 # Usage
 ## Step 1: Install Dependencies
@@ -48,8 +54,8 @@ harvester.harvest()
 ## Example server
 A simple example of a [server](server/server.py) that demonstrates how to use **Product Harvester** to extract
 structured data from uploaded image files can be found in the [server folder](server).
-It implements its own custom strategies for each component except **ImageProcessor** (for which it utilizes existing
-**PriceTagImageProcessor**):
-  - **ImagesRetriever** - implemented by [Base64Retriever](server/retriever.py)
-  - **ProductsImporter** -> implemented by [ProductsCollector](server/products_collector.py)
-  - **ErrorTracker** -> implemented by [ErrorCollector](server/error_collector.py)
+It implements its own custom strategies for each component except `ImageProcessor` (for which it utilizes existing
+[PriceTagImageProcessor](product_harvester/processors.py)):
+  - `ImagesRetriever` -> implemented by [Base64Retriever](server/retriever.py)
+  - `ProductsImporter` -> implemented by [ProductsCollector](server/products_collector.py)
+  - `ErrorTracker` -> implemented by [ErrorCollector](server/error_collector.py)
