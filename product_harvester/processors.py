@@ -5,6 +5,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.runnables.utils import Output
 from langsmith import RunTree
 
+from product_harvester.dolacna_client import _DoLacnaAPICategory
 from product_harvester.product import Product
 
 
@@ -55,50 +56,51 @@ class _PriceTagProcessingResult(ProcessingResult):
 
 
 class PriceTagImageProcessor(ImageProcessor):
-    _prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """
-Extract product data from the image of a product price tag.
-As a category, use from these: "voda", "jedlo", "ostatné".
-{format_instructions}
-""",
-            ),
-            (
-                "user",
-                [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": "{image}"},
-                    },
-                    {"type": "text", "text": "process_image"},
-                ],
-            ),
-        ]
-    )
-    _parser = PydanticOutputParser(pydantic_object=Product)
-
-    def __init__(self, model: BaseChatModel, max_concurrency: int = 4):
-        self._model = model
+    def __init__(self, model: BaseChatModel, categories: list[_DoLacnaAPICategory], max_concurrency: int = 4):
+        self._categories = categories
         self._max_concurrency = max_concurrency
-        self._chain = self._prompt | self._model | self._parser
         self._chain_stage_descriptions = [
             "prompt preparation",
             "extracting data from image",
             "parsing of extracted data from image",
         ]
+        self._model = model
+        self._parser = PydanticOutputParser(pydantic_object=Product)
+        self._prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """
+    Extract product data from the image of a product price tag.
+    As a category, use from these: {category_list}.
+    {format_instructions}
+    """,
+                ),
+                (
+                    "user",
+                    [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": "{image}"},
+                        },
+                        {"type": "text", "text": "process_image"},
+                    ],
+                ),
+            ]
+        )
+        self._chain = self._prompt | self._model | self._parser
 
     def process(self, images: list[str]) -> ProcessingResult:
-        input_data = [self._make_input_data(image) for image in images]
+        input_data = [self._make_input_data(image, self._categories) for image in images]
         result = _PriceTagProcessingResult(self._chain_stage_descriptions)
         chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=self._max_concurrency), return_exceptions=True)
         result.set_products_from_outputs(outputs)
         return result
 
-    def _make_input_data(self, image: str) -> dict[str, str]:
+    def _make_input_data(self, image: str, categories: list[_DoLacnaAPICategory]) -> dict[str, str]:
         return {
             "image": image,
             "format_instructions": self._parser.get_format_instructions(),
+            "category_list": ",".join([category.name for category in categories])
         }
