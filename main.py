@@ -25,14 +25,12 @@ if __name__ == "__main__":
     retriever = LocalImagesRetriever(f"./test_images/{shop_folder}")
     # retriever = GoogleDriveImagesRetriever(client_config, folder_id)
 
-    processor = PriceTagImageProcessor(ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key="addGoogleApiKey"), categories)
+    processor = PriceTagImageProcessor(ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=""), categories)
 
-    importer = DoLacnaAPIProductsImporter(dolacna_client, categories, billa_id)
+    importer = DoLacnaAPIProductsImporter(dolacna_client, categories, shop_id)
     # importer = ProductsCollector()
 
     logger = ErrorLogger()
 
     harvester = ProductsHarvester(retriever, processor, importer, logger)
     harvester.harvest()
-
-    # print(importer.products)
