@@ -4,9 +4,9 @@ from unittest.mock import Mock, patch
 import requests
 from pydantic import ValidationError
 
+from product_harvester.dolacna_client import _DoLacnaAPIProductDetail
 from product_harvester.importers import (
     _DoLacnaAPIProduct,
-    _DoLacnaAPIProductDetail,
     ProductsImporter,
     DoLacnaAPIProductsImporter,
     StdOutProductsImporter,
