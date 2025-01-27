@@ -32,6 +32,7 @@ class DoLacnaClient:
     def __init__(self, token: str):
         self._token = token
         self._session = requests.Session()
+        self._cached_categories: list[DoLacnaAPICategory] = []
 
     def import_product(self, product: DoLacnaAPIProduct):
         data = product.model_dump()
@@ -40,6 +41,11 @@ class DoLacnaClient:
         response.raise_for_status()
 
     def get_categories(self) -> list[DoLacnaAPICategory]:
+        if not self._cached_categories:
+            self._cached_categories = self._get_categories()
+        return self._cached_categories
+
+    def _get_categories(self) -> list[DoLacnaAPICategory]:
         response = self._session.get(self._categories_endpoint)
         response.raise_for_status()
         raw_categories = response.json().get("categories", [])

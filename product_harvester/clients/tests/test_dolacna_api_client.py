@@ -55,8 +55,10 @@ class TestDoLacnaClient(TestCase):
         self._mock_response.raise_for_status.return_value = None
         self._mock_response.json.return_value = {"categories": [{"id": 1, "name": "food"}, {"id": 2, "name": "drink"}]}
         mock_get.return_value = self._mock_response
-        categories = self._client.get_categories()
-        self.assertEqual(categories, [DoLacnaAPICategory(id=1, name="food"), DoLacnaAPICategory(id=2, name="drink")])
+        for i in range(2):  # Loop to validate caching
+            categories = self._client.get_categories()
+            want_categories = [DoLacnaAPICategory(id=1, name="food"), DoLacnaAPICategory(id=2, name="drink")]
+            self.assertEqual(categories, want_categories)
         mock_get.assert_called_once_with(DoLacnaClient._categories_endpoint)
 
     @patch("product_harvester.clients.dolacna_api_client.requests.Session.get")
