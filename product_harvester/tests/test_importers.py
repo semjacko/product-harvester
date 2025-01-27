@@ -120,7 +120,7 @@ class TestDoLacnaAPIProductsImporter(TestCase):
             DoLacnaAPICategory(id=1, name="drink"),
             DoLacnaAPICategory(id=2, name="jedlo"),
         ]
-        importer = DoLacnaAPIProductsImporter(token=self._token, shop_id=self._shop_id)
+        importer = DoLacnaAPIProductsImporter.from_api_token(token=self._token, shop_id=self._shop_id)
         mocked_client.assert_called_once_with(self._token)
         mock_client.get_categories.assert_called_once()
         importer.import_product(self._product)
@@ -130,7 +130,7 @@ class TestDoLacnaAPIProductsImporter(TestCase):
     def test_import_product_invalid_category(self, mocked_client):
         mock_client = mocked_client.return_value
         mock_client.get_categories.return_value = [DoLacnaAPICategory(id=1, name="drink")]
-        importer = DoLacnaAPIProductsImporter(token=self._token, shop_id=self._shop_id)
+        importer = DoLacnaAPIProductsImporter.from_api_token(token=self._token, shop_id=self._shop_id)
         mocked_client.assert_called_once_with(self._token)
         mock_client.get_categories.assert_called_once()
         with self.assertRaises(KeyError):
@@ -142,7 +142,7 @@ class TestDoLacnaAPIProductsImporter(TestCase):
         mock_client = mocked_client.return_value
         mock_client.import_product.side_effect = ValueError("Some error")
         mock_client.get_categories.return_value = [DoLacnaAPICategory(id=2, name="jedlo")]
-        importer = DoLacnaAPIProductsImporter(token=self._token, shop_id=self._shop_id)
+        importer = DoLacnaAPIProductsImporter.from_api_token(token=self._token, shop_id=self._shop_id)
         mocked_client.assert_called_once_with(self._token)
         mock_client.get_categories.assert_called_once()
         with self.assertRaises(ValueError):

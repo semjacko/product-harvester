@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Self
 
 from product_harvester.clients.dolacna_api_client import DoLacnaAPIProduct, DoLacnaAPIProductDetail, DoLacnaClient
 from product_harvester.product import Product
@@ -44,10 +44,14 @@ class _DoLacnaAPIProductAdapter(DoLacnaAPIProduct):
 
 
 class DoLacnaAPIProductsImporter(ProductsImporter):
-    def __init__(self, token: str, shop_id: int):
+    def __init__(self, client: DoLacnaClient, shop_id: int):
         self._shop_id = shop_id
-        self._client = DoLacnaClient(token)
+        self._client = client
         self._category_to_id_mapping = self._make_category_to_id_mapping()
+
+    @classmethod
+    def from_api_token(cls, token: str, shop_id: int) -> Self:
+        return DoLacnaAPIProductsImporter(DoLacnaClient(token), shop_id)
 
     def _make_category_to_id_mapping(self) -> dict[str, int]:
         categories = self._client.get_categories()
