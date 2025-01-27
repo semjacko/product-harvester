@@ -38,6 +38,7 @@ class TestPriceTagImageProcessor(TestCase):
             self.assertIn(want_error.detailed_msg, result_error.detailed_msg)
 
     def test_process_success(self):
+        # TODO: Assert data flow (inputs) between chain stages
         # language=JSON
         mock_products = TypeAdapter(List[Product]).validate_json(
             """[

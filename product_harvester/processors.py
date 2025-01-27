@@ -61,7 +61,7 @@ class PriceTagImageProcessor(ImageProcessor):
                 "system",
                 """
 Extract product data from the image of a product price tag.
-As a category, use from these: "voda", "jedlo", "ostatné".
+As a category, use from these: {categories}.
 {format_instructions}
 """,
             ),
@@ -79,9 +79,12 @@ As a category, use from these: "voda", "jedlo", "ostatné".
     )
     _parser = PydanticOutputParser(pydantic_object=Product)
 
-    def __init__(self, model: BaseChatModel, max_concurrency: int = 4):
+    def __init__(self, model: BaseChatModel, categories: list[str] | None = None, max_concurrency: int = 4):
+        categories = categories if categories is not None else ["food", "drinks", "other"]
         self._model = model
+        self._categories_instructions = ",".join(categories)
         self._max_concurrency = max_concurrency
+        self._parser_format_instructions = self._parser.get_format_instructions()
         self._chain = self._prompt | self._model | self._parser
         self._chain_stage_descriptions = [
             "prompt preparation",
@@ -100,5 +103,6 @@ As a category, use from these: "voda", "jedlo", "ostatné".
     def _make_input_data(self, image: str) -> dict[str, str]:
         return {
             "image": image,
-            "format_instructions": self._parser.get_format_instructions(),
+            "format_instructions": self._parser_format_instructions,
+            "categories": self._categories_instructions,
         }
