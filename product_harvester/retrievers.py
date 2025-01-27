@@ -1,6 +1,6 @@
 import os
 from glob import glob
-from typing import Generator, Any
+from typing import Generator, Any, Self
 
 from product_harvester.clients.google_drive_client import GoogleDriveClient
 
@@ -31,9 +31,13 @@ class LocalImagesRetriever(ImagesRetriever):
 
 class GoogleDriveImagesRetriever(ImagesRetriever):
 
-    def __init__(self, client_config: dict[str, Any], folder_id: str):
-        self._client = GoogleDriveClient(client_config)
+    def __init__(self, client: GoogleDriveClient, folder_id: str):
+        self._client = client
         self._folder_id = folder_id
+
+    @classmethod
+    def from_client_config(cls, client_config: dict[str, Any], folder_id: str) -> Self:
+        return GoogleDriveImagesRetriever(GoogleDriveClient(client_config), folder_id)
 
     def set_folder(self, folder_id: str):
         self._folder_id = folder_id
