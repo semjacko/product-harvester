@@ -40,7 +40,7 @@ class TestProduct(TestCase):
 
     def test_invalid_barcode(self):
         with self.assertRaises(ValidationError):
-            Product(name="Banana", qty=10, qty_unit="kg", price=10, barcode=0, category="fruit")
+            Product(name="Banana", qty=10, qty_unit="kg", price=10, barcode=-1, category="fruit")
 
     def test_empty_category(self):
         with self.assertRaises(ValidationError):

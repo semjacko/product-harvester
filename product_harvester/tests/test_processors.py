@@ -1,7 +1,8 @@
 from typing import List
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock, mock_open
 
+import numpy as np
 from langchain_core.language_models import BaseChatModel
 from langchain_core.language_models.fake_chat_models import FakeListChatModelError, FakeMessagesListChatModel
 from langchain_core.messages import BaseMessage
@@ -12,6 +13,7 @@ from product_harvester.processors import (
     ImageProcessor,
     PriceTagImageProcessor,
     ProcessingResult,
+    _BarcodeReader,
 )
 from product_harvester.product import Product
 
@@ -52,6 +54,23 @@ class TestPriceTagImageProcessor(TestCase):
         processor = self._prepare_processor(fake_model)
         result = processor.process(images=["/image1.jpg", "/image2.png", "/image3.jpg"])
         self._assert_result(result, mock_products, [])
+
+    def test_process_success_adjust_barcode(self):
+        mock_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
+        fake_model = self._prepare_fake_model_with_responses([mock_product.model_dump_json()])
+        processor = self._prepare_processor(fake_model)
+        processor._barcode_reader.read_barcode.return_value = 45678
+        result = processor.process(images=["/image1.jpg"])
+        mock_product.barcode = 45678
+        self._assert_result(result, [mock_product], [])
+
+    def test_process_adjust_barcode_failure(self):
+        mock_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
+        fake_model = self._prepare_fake_model_with_responses([mock_product.model_dump_json()])
+        processor = self._prepare_processor(fake_model)
+        processor._barcode_reader.read_barcode.side_effect = ValueError("wat")
+        result = processor.process(images=["/image1.jpg"])
+        self._assert_result(result, [mock_product], [])
 
     def test_process_empty_response_from_model(self):
         fake_model = self._prepare_fake_model_with_responses([""] * 2)
@@ -171,4 +190,81 @@ class TestPriceTagImageProcessor(TestCase):
 
     @staticmethod
     def _prepare_processor(model: BaseChatModel) -> PriceTagImageProcessor:
-        return PriceTagImageProcessor(model, max_concurrency=1)
+        processor = PriceTagImageProcessor(model, max_concurrency=1)
+        processor._barcode_reader = Mock()
+        processor._barcode_reader.read_barcode.return_value = None
+        return processor
+
+
+class TestBarcodeReader(TestCase):
+
+    @patch("product_harvester.processors.decode")
+    @patch("product_harvester.processors.cv2.imdecode")
+    @patch("product_harvester.processors.base64.b64decode", return_value=b"test_data")
+    def test_read_barcode_from_base64(self, mock_bas64_decode, mock_imdecode, mock_decode):
+        mock_imdecode.return_value = np.zeros((100, 100, 3), dtype=np.uint8)
+        mock_barcode = MagicMock()
+        mock_barcode.data.decode.return_value = "123456"
+        mock_decode.return_value = [mock_barcode]
+        barcode = _BarcodeReader().read_barcode("data:image/png;base64,test_base64_image")
+        self.assertEqual(barcode, 123456)
+        mock_bas64_decode.assert_called_once_with("test_base64_image")
+        mock_imdecode.assert_called_once()
+        mock_decode.assert_called_once()
+
+    @patch("product_harvester.processors.decode")
+    @patch("product_harvester.processors.cv2.imdecode")
+    @patch("product_harvester.processors.requests.get")
+    def test_read_barcode_from_url(self, mock_requests_get, mock_imdecode, mock_decode):
+        mock_response = MagicMock()
+        mock_response.content = b"test_data"
+        mock_requests_get.return_value = mock_response
+        mock_imdecode.return_value = np.zeros((100, 100, 3), dtype=np.uint8)
+        mock_barcode = MagicMock()
+        mock_barcode.data.decode.return_value = "789012"
+        mock_decode.return_value = [mock_barcode]
+        barcode = _BarcodeReader().read_barcode("http://example.com/image.png")
+        self.assertEqual(barcode, 789012)
+        mock_requests_get.assert_called_once_with("http://example.com/image.png")
+        mock_imdecode.assert_called_once()
+        mock_decode.assert_called_once()
+
+    @patch("product_harvester.processors.decode")
+    @patch("product_harvester.processors.cv2.imdecode")
+    @patch("builtins.open", new_callable=mock_open, read_data=b"fake_image_bytes")
+    def test_read_barcode_from_file(self, _mock_open, mock_imdecode, mock_decode):
+        mock_imdecode.return_value = np.zeros((100, 100, 3), dtype=np.uint8)
+        mock_barcode = MagicMock()
+        mock_barcode.data.decode.return_value = "654321"
+        mock_decode.return_value = [mock_barcode, "asddf123"]
+        barcode = _BarcodeReader().read_barcode("/path/to/image.png")
+        self.assertEqual(barcode, 654321)
+        _mock_open.assert_called_once_with("/path/to/image.png", "rb")
+        mock_imdecode.assert_called_once()
+        mock_decode.assert_called_once()
+
+    @patch("product_harvester.processors.decode")
+    @patch("product_harvester.processors.cv2.imdecode")
+    @patch("product_harvester.processors.base64.b64decode", return_value=b"test_data")
+    def test_read_barcode_empty(self, mock_bas64_decode, mock_imdecode, mock_decode):
+        mock_imdecode.return_value = np.zeros((100, 100, 3), dtype=np.uint8)
+        mock_decode.return_value = []
+        barcode = _BarcodeReader().read_barcode("data:image/png;base64,test_base64_image")
+        self.assertIsNone(barcode)
+        mock_bas64_decode.assert_called_once_with("test_base64_image")
+        mock_imdecode.assert_called_once()
+        mock_decode.assert_called_once()
+
+    @patch("product_harvester.processors.decode")
+    @patch("product_harvester.processors.cv2.imdecode")
+    @patch("product_harvester.processors.base64.b64decode", return_value=b"test_data")
+    def test_read_barcode_non_numeric(self, mock_bas64_decode, mock_imdecode, mock_decode):
+        mock_imdecode.return_value = np.zeros((100, 100, 3), dtype=np.uint8)
+        mock_barcode = MagicMock()
+        mock_barcode.data.decode.return_value = "123asd456"
+        mock_decode.return_value = [mock_barcode]
+        with self.assertRaises(ValueError):
+            _BarcodeReader().read_barcode("data:image/png;base64,test_base64_image")
+        mock_bas64_decode.assert_called_once_with("test_base64_image")
+        mock_imdecode.assert_called_once()
+        mock_decode.assert_called_once()

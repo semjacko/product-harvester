@@ -1,9 +1,15 @@
+import base64
+
+import cv2
+import numpy as np
+import requests
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.runnables.utils import Output
 from langsmith import RunTree
+from pyzbar.pyzbar import decode
 
 from product_harvester.product import Product
 
@@ -54,6 +60,55 @@ class _PriceTagProcessingResult(ProcessingResult):
         return f"Failed during {self._chain_stage_descriptions[stage_index]}"
 
 
+class _BarcodeReader:
+    def __init__(self):
+        self._current_image_data = ""
+
+    def read_barcode(self, image_data: str) -> int | None:
+        self._current_image_data = image_data
+        image = self._load_image()
+        barcodes = decode(image)
+        return int(barcodes[0].data.decode("utf-8")) if barcodes else None
+
+    def _load_image(self) -> np.ndarray:
+        if self._is_base64_encoded():
+            image_bytes = self._image_bytes_from_base64()
+        elif self._is_url():
+            image_bytes = self._image_bytes_from_url()
+        else:
+            image_bytes = self._image_bytes_from_path()
+        image = self._load_image_from_bytes(image_bytes)
+        return self._image_to_grayscale(image)
+
+    def _is_base64_encoded(self) -> bool:
+        return self._current_image_data.startswith("data:image/")
+
+    def _image_bytes_from_base64(self) -> bytes:
+        base64_data = self._current_image_data.split(",", 1)[1]
+        return base64.b64decode(base64_data)
+
+    def _is_url(self) -> bool:
+        return self._current_image_data.startswith("http")
+
+    def _image_bytes_from_url(self) -> bytes:
+        response = requests.get(self._current_image_data)
+        response.raise_for_status()
+        return response.content
+
+    def _image_bytes_from_path(self) -> bytes:
+        with open(self._current_image_data, "rb") as image_file:
+            return image_file.read()
+
+    @staticmethod
+    def _load_image_from_bytes(image_bytes) -> np.ndarray:
+        arr = np.frombuffer(image_bytes, np.uint8)
+        return cv2.imdecode(arr, cv2.IMREAD_COLOR)
+
+    @staticmethod
+    def _image_to_grayscale(image: np.ndarray) -> np.ndarray:
+        return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+
 class PriceTagImageProcessor(ImageProcessor):
     _prompt = ChatPromptTemplate.from_messages(
         [
@@ -91,11 +146,12 @@ As a category, use from these: {categories}.
             "extracting data from image",
             "parsing of extracted data from image",
         ]
+        self._barcode_reader = _BarcodeReader()
 
     def process(self, images: list[str]) -> ProcessingResult:
         input_data = [self._make_input_data(image) for image in images]
         result = _PriceTagProcessingResult(self._chain_stage_descriptions)
-        chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree)
+        chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree, on_end=self._adjust_barcode)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=self._max_concurrency), return_exceptions=True)
         result.set_products_from_outputs(outputs)
         return result
@@ -106,3 +162,17 @@ As a category, use from these: {categories}.
             "format_instructions": self._parser_format_instructions,
             "categories": self._categories_instructions,
         }
+
+    def _adjust_barcode(self, run_tree: RunTree):
+        image_data = run_tree.inputs["image"]
+        parsing_stage_id = 2
+        parsing_stage = run_tree.child_runs[parsing_stage_id]
+        product = parsing_stage.outputs.get("output") if parsing_stage.outputs else None
+        if not isinstance(product, Product):
+            return
+        try:
+            barcode = self._barcode_reader.read_barcode(image_data)
+            if barcode:
+                product.barcode = barcode
+        except Exception:
+            return
