@@ -121,7 +121,7 @@ class ProductsHarvester:
     def _track_processing_errors(self, error_results: list[PerImageProcessingResult]):
         errors = [
             HarvestError(
-                result.output.msg, {"input": result.input_image_source_id, "detailed_info": result.output.detailed_msg}
+                result.output.msg, {"input": result.input_image.id, "detailed_info": result.output.detailed_msg}
             )
             for result in error_results
         ]

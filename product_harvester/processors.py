@@ -23,7 +23,7 @@ class ProcessingError(Exception):
 
 
 class PerImageProcessingResult(NamedTuple):
-    input_image_source_id: str
+    input_image: Image
     output: Product | ProcessingError
 
     @property
@@ -59,7 +59,7 @@ class _PriceTagProcessingResult(ProcessingResult):
             raise ProcessingError(msg="Number of inputs and outputs do not match")
         self._results.extend(
             [
-                PerImageProcessingResult(input_image_source_id=input_image.id, output=output)
+                PerImageProcessingResult(input_image=Image(id=input_image.id, data=input_image.data), output=output)
                 for input_image, output in zip(inputs, outputs)
                 if isinstance(output, Product)
             ]
@@ -71,8 +71,9 @@ class _PriceTagProcessingResult(ProcessingResult):
                 msg = self._make_stage_error_msg(stage_index)
                 err = ProcessingError(msg, stage.error)
                 self._results.append(
-                    # TODO: run_tree.inputs["image"] contains image data and not ID
-                    PerImageProcessingResult(input_image_source_id=run_tree.inputs["image"], output=err)
+                    PerImageProcessingResult(
+                        input_image=Image(id=run_tree.inputs["image_id"], data=run_tree.inputs["image"]), output=err
+                    )
                 )
 
     def _make_stage_error_msg(self, stage_index: int) -> str:
@@ -170,16 +171,17 @@ As a category, use from these: {categories}.
         self._barcode_reader = _BarcodeReader()
 
     def process(self, images: list[Image]) -> ProcessingResult:
-        input_data = [self._make_input_data(image.data) for image in images]
+        input_data = [self._make_input_data(image) for image in images]
         result = _PriceTagProcessingResult(self._chain_stage_descriptions)
         chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree, on_end=self._adjust_barcode)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=self._max_concurrency), return_exceptions=True)
         result.set_products_from_outputs(images, outputs)
         return result
 
-    def _make_input_data(self, image: str) -> dict[str, str]:
+    def _make_input_data(self, image: Image) -> dict[str, str]:
         return {
-            "image": image,
+            "image": image.data,
+            "image_id": image.id,
             "format_instructions": self._parser_format_instructions,
             "categories": self._categories_instructions,
         }

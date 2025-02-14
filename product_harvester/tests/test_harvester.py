@@ -75,8 +75,8 @@ class TestProductsHarvester(TestCase):
         ]
         self._mock_processor.process.return_value = ProcessingResult(
             results=[
-                PerImageProcessingResult(input_image_source_id=f"image{i}", output=mock_product)
-                for i, mock_product in enumerate(mock_products)
+                PerImageProcessingResult(input_image=input_image, output=mock_product)
+                for input_image, mock_product in zip(mock_images, mock_products)
             ]
         )
 
@@ -98,13 +98,13 @@ class TestProductsHarvester(TestCase):
         mock_product = Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode=123, category="jedlo")
         self._mock_processor.process.return_value = ProcessingResult(
             results=[
-                PerImageProcessingResult(input_image_source_id="image1", output=mock_product),
+                PerImageProcessingResult(input_image=mock_images[0], output=mock_product),
                 PerImageProcessingResult(
-                    input_image_source_id="/wat.jpeg",
+                    input_image=mock_images[1],
                     output=ProcessingError("invalid image mocked error", "some detailed message"),
                 ),
                 PerImageProcessingResult(
-                    input_image_source_id="/wtf.png",
+                    input_image=mock_images[2],
                     output=ProcessingError("invalid JSON extracted mocked error", "other detailed message"),
                 ),
             ]
@@ -118,11 +118,11 @@ class TestProductsHarvester(TestCase):
             [
                 HarvestError(
                     "invalid image mocked error",
-                    {"input": "/wat.jpeg", "detailed_info": "some detailed message"},
+                    {"input": "image2", "detailed_info": "some detailed message"},
                 ),
                 HarvestError(
                     "invalid JSON extracted mocked error",
-                    {"input": "/wtf.png", "detailed_info": "other detailed message"},
+                    {"input": "image3", "detailed_info": "other detailed message"},
                 ),
             ]
         )
@@ -151,12 +151,13 @@ class TestProductsHarvester(TestCase):
         self._mock_importer.import_product.assert_not_called()
 
     def test_harvest_retriever_generator_error(self):
+        valid_input_image = Image(id="image1", data="/image1.jpg")
         mock_images = MagicMock()
-        mock_images.__next__.side_effect = [Image(id="image1", data="/image1.jpg"), ValueError("Some error")]
+        mock_images.__next__.side_effect = [valid_input_image, ValueError("Some error")]
         self._mock_retriever.retrieve_images.return_value = mock_images
         mock_product = Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo")
         self._mock_processor.process.return_value = ProcessingResult(
-            results=[PerImageProcessingResult(input_image_source_id="image1", output=mock_product)]
+            results=[PerImageProcessingResult(input_image=valid_input_image, output=mock_product)]
         )
         self._harvester.harvest()
 
@@ -198,8 +199,8 @@ class TestProductsHarvester(TestCase):
         ]
         self._mock_processor.process.return_value = ProcessingResult(
             results=[
-                PerImageProcessingResult(input_image_source_id=f"image{i}", output=mock_product)
-                for i, mock_product in enumerate(mock_products)
+                PerImageProcessingResult(input_image=input_image, output=mock_product)
+                for input_image, mock_product in zip(mock_images, mock_products)
             ]
         )
         self._mock_importer.import_product.side_effect = [ValueError("Some importing error"), None]

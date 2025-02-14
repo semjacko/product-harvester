@@ -34,7 +34,7 @@ class TestPriceTagImageProcessor(TestCase):
         self.assertEqual(len(result.error_results), len(want_result.error_results))
         self.assertEqual(result.product_results, want_result.product_results)
         for result, want_result in zip(result._results, want_result._results):
-            self.assertEqual(result.input_image_source_id, want_result.input_image_source_id)
+            self.assertEqual(result.input_image, want_result.input_image)
             self.assertEqual(result.is_error, want_result.is_error)
             if want_result.is_error:
                 self.assertEqual(result.output.msg, want_result.output.msg)
@@ -55,17 +55,16 @@ class TestPriceTagImageProcessor(TestCase):
         responses = [product.model_dump_json() for product in mock_products]
         fake_model = self._prepare_fake_model_with_responses(responses)
         processor = self._prepare_processor(fake_model)
-        result = processor.process(
-            images=[
-                Image(id="image1", data="/image1.jpg"),
-                Image(id="image2", data="/image2.jpg"),
-                Image(id="image3", data="/image3.jpg"),
-            ]
-        )
+        input_images = [
+            Image(id="image1", data="/image1.jpg"),
+            Image(id="image2", data="/image2.jpg"),
+            Image(id="image3", data="/image3.jpg"),
+        ]
+        result = processor.process(images=input_images)
         want_result = ProcessingResult(
             results=[
-                PerImageProcessingResult(input_image_source_id=f"image{i}", output=mock_product)
-                for i, mock_product in enumerate(mock_products, start=1)
+                PerImageProcessingResult(input_image=input_image, output=mock_product)
+                for input_image, mock_product in zip(input_images, mock_products)
             ]
         )
         self._assert_result(result, want_result)
@@ -75,11 +74,10 @@ class TestPriceTagImageProcessor(TestCase):
         fake_model = self._prepare_fake_model_with_responses([mock_product.model_dump_json()])
         processor = self._prepare_processor(fake_model)
         processor._barcode_reader.read_barcode.return_value = 45678
-        result = processor.process(images=[Image(id="image1", data="/image1.jpg")])
+        input_image = Image(id="image1", data="/image1.jpg")
+        result = processor.process(images=[input_image])
         mock_product.barcode = 45678
-        want_result = ProcessingResult(
-            results=[PerImageProcessingResult(input_image_source_id="image1", output=mock_product)]
-        )
+        want_result = ProcessingResult(results=[PerImageProcessingResult(input_image=input_image, output=mock_product)])
         self._assert_result(result, want_result)
 
     def test_process_adjust_barcode_failure(self):
@@ -87,32 +85,25 @@ class TestPriceTagImageProcessor(TestCase):
         fake_model = self._prepare_fake_model_with_responses([mock_product.model_dump_json()])
         processor = self._prepare_processor(fake_model)
         processor._barcode_reader.read_barcode.side_effect = ValueError("wat")
-        result = processor.process(images=[Image(id="image1", data="/image1.jpg")])
-        want_result = ProcessingResult(
-            results=[PerImageProcessingResult(input_image_source_id="image1", output=mock_product)]
-        )
+        input_image = Image(id="image1", data="/image1.jpg")
+        result = processor.process(images=[input_image])
+        want_result = ProcessingResult(results=[PerImageProcessingResult(input_image=input_image, output=mock_product)])
         self._assert_result(result, want_result)
 
     def test_process_empty_response_from_model(self):
         fake_model = self._prepare_fake_model_with_responses([""] * 2)
         processor = self._prepare_processor(fake_model)
-        result = processor.process(
-            images=[Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.png")]
-        )
+        input_images = [Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.png")]
+        result = processor.process(images=input_images)
         want_result = ProcessingResult(
             results=[
                 PerImageProcessingResult(
-                    input_image_source_id="/image1.jpg",
+                    input_image=input_image,
                     output=ProcessingError(
                         "Failed during parsing of extracted data from image", "OutputParserException"
                     ),
-                ),
-                PerImageProcessingResult(
-                    input_image_source_id="/image2.png",
-                    output=ProcessingError(
-                        "Failed during parsing of extracted data from image", "OutputParserException"
-                    ),
-                ),
+                )
+                for input_image in input_images
             ]
         )
         self._assert_result(result, want_result)
@@ -125,20 +116,19 @@ class TestPriceTagImageProcessor(TestCase):
                 "{wat",
             ]
         )
+        input_images = [Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.jpg")]
         processor = self._prepare_processor(fake_model)
-        result = processor.process(
-            images=[Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.jpg")]
-        )
+        result = processor.process(images=input_images)
         want_result = ProcessingResult(
             results=[
                 PerImageProcessingResult(
-                    input_image_source_id="/image2.jpg",
+                    input_image=input_images[1],
                     output=ProcessingError(
                         "Failed during parsing of extracted data from image", "OutputParserException"
                     ),
                 ),
                 PerImageProcessingResult(
-                    input_image_source_id="image1",
+                    input_image=input_images[0],
                     output=mock_valid_product,
                 ),
             ]
@@ -157,31 +147,27 @@ class TestPriceTagImageProcessor(TestCase):
             ]
         )
         processor = self._prepare_processor(fake_model)
-        result = processor.process(
-            images=[
-                Image(id="image1", data="/image1.jpeg"),
-                Image(id="image2", data="/image2.jpg"),
-                Image(id="image3", data="/image3.jpg"),
-            ]
-        )
+        input_images = [
+            Image(id="image1", data="/image1.jpeg"),
+            Image(id="image2", data="/image2.jpg"),
+            Image(id="image3", data="/image3.jpg"),
+        ]
+        result = processor.process(images=input_images)
         want_result = ProcessingResult(
             results=[
                 PerImageProcessingResult(
-                    input_image_source_id="/image1.jpeg",
+                    input_image=input_images[0],
                     output=ProcessingError(
                         "Failed during parsing of extracted data from image", "OutputParserException"
                     ),
                 ),
                 PerImageProcessingResult(
-                    input_image_source_id="/image3.jpg",
+                    input_image=input_images[2],
                     output=ProcessingError(
                         "Failed during parsing of extracted data from image", "OutputParserException"
                     ),
                 ),
-                PerImageProcessingResult(
-                    input_image_source_id="image2",
-                    output=mock_valid_product,
-                ),
+                PerImageProcessingResult(input_image=input_images[1], output=mock_valid_product),
             ]
         )
         self._assert_result(result, want_result)
@@ -190,11 +176,12 @@ class TestPriceTagImageProcessor(TestCase):
         fake_model = Mock()
         fake_model.side_effect = FakeListChatModelError()
         processor = self._prepare_processor(fake_model)
-        result = processor.process(images=[Image(id="image1", data="/image1.png")])
+        input_image = Image(id="image1", data="/image1.png")
+        result = processor.process(images=[input_image])
         want_result = ProcessingResult(
             results=[
                 PerImageProcessingResult(
-                    input_image_source_id="/image1.png",
+                    input_image=input_image,
                     output=ProcessingError("Failed during extracting data from image", "FakeListChatModelError"),
                 ),
             ]
@@ -208,12 +195,13 @@ class TestPriceTagImageProcessor(TestCase):
 
         # Patch instantiation of the object, so it will be created with description just for the 1st (prompt) stage
         mock_result = _PriceTagProcessingResult(["a"])
+        input_image = Image(id="image1", data="/image1.png")
         with patch("product_harvester.processors._PriceTagProcessingResult", return_value=mock_result):
-            result = processor.process(images=[Image(id="image1", data="/image1.png")])
+            result = processor.process(images=[input_image])
         want_result = ProcessingResult(
             results=[
                 PerImageProcessingResult(
-                    input_image_source_id="/image1.png",
+                    input_image=input_image,
                     output=ProcessingError("Unknown failure", "FakeListChatModelError"),
                 ),
             ]
