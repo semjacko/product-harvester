@@ -7,7 +7,7 @@ It can be used for automated bulk processing of price tag images stored either l
 on the selected `ImagesRetriever` implementation). The extracted structured data can be imported via API or printed 
 to the standard output (depending on the selected `ProductsImporter` implementation).
 
-![example](https://github.com/user-attachments/assets/5e100b8c-a897-407a-9b89-ef46a3823ef7)
+![example](https://github.com/user-attachments/assets/a53dd834-f706-48d3-9a88-406f8f5f7d1e)
 
 
 # Architecture
