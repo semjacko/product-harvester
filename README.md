@@ -22,7 +22,8 @@ Product Harvester is modular and consists of 4 key components, each providing a 
 This design allows components to be easily replaced with existing solutions or custom strategies (or adapters) 
 to suit specific needs.
 
-![architecture](https://github.com/user-attachments/assets/9dd03d59-8535-471c-80a6-9a8f835518bc)
+![architecture](https://github.com/user-attachments/assets/65d142c8-855b-4f25-939d-80e62d2ae897)
+
 
 # Usage
 ## Step 1: Install Dependencies
