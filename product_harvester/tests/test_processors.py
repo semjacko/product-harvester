@@ -78,7 +78,7 @@ class TestPriceTagImageProcessor(TestCase):
         result = processor.process(images=[Image(id="image1", data="/image1.jpg")])
         mock_product.barcode = 45678
         want_result = ProcessingResult(
-            results=[PerImageProcessingResult(input_image_source_id=f"image1", output=mock_product)]
+            results=[PerImageProcessingResult(input_image_source_id="image1", output=mock_product)]
         )
         self._assert_result(result, want_result)
 
