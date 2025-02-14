@@ -3,7 +3,7 @@ from typing import Any, Generator
 
 from product_harvester.image import Image
 from product_harvester.importers import ProductsImporter
-from product_harvester.processors import ProcessingError, ProcessingResult, ImageProcessor
+from product_harvester.processors import ProcessingResult, ImageProcessor, PerImageProcessingResult
 from product_harvester.product import Product
 from product_harvester.retrievers import ImagesRetriever
 
@@ -57,8 +57,8 @@ class ProductsHarvester:
     def harvest(self):
         for images_batch in self._generate_image_batches():
             result = self._process_images(images_batch)
-            products = self._extract_products_and_track_errors(result)
-            self._import_products(products)
+            product_results = self._extract_products_and_track_errors(result)
+            self._import_products(product_results)
 
     def _generate_image_batches(self, batch_size: int = 8) -> Generator[list[Image], None, None]:
         try:
@@ -96,15 +96,15 @@ class ProductsHarvester:
             return None
         return result
 
-    def _extract_products_and_track_errors(self, result: ProcessingResult | None) -> list[Product]:
+    def _extract_products_and_track_errors(self, result: ProcessingResult | None) -> list[PerImageProcessingResult]:
         if not result:
             return []
-        self._track_processing_errors(result.errors)
-        return result.products
+        self._track_processing_errors(result.error_results)
+        return result.product_results
 
-    def _import_products(self, products: list[Product]):
-        for product in products:
-            self._import_product(product)
+    def _import_products(self, product_results: list[PerImageProcessingResult]):
+        for result in product_results:
+            self._import_product(result.output)
 
     def _import_product(self, product: Product):
         try:
@@ -118,10 +118,12 @@ class ProductsHarvester:
                 ]
             )
 
-    def _track_processing_errors(self, processing_errors: list[ProcessingError]):
+    def _track_processing_errors(self, error_results: list[PerImageProcessingResult]):
         errors = [
-            HarvestError(error.msg, {"input": error.input, "detailed_info": error.detailed_msg})
-            for error in processing_errors
+            HarvestError(
+                result.output.msg, {"input": result.input_image_source_id, "detailed_info": result.output.detailed_msg}
+            )
+            for result in error_results
         ]
         self._track_errors(errors)
 

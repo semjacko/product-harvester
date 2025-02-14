@@ -1,4 +1,5 @@
 import base64
+from typing import NamedTuple
 
 import cv2
 import numpy as np
@@ -16,24 +17,31 @@ from product_harvester.product import Product
 
 
 class ProcessingError(Exception):
-    def __init__(self, input: dict, msg: str, detailed_msg: str):
-        self.input = input
+    def __init__(self, msg: str, detailed_msg: str = ""):
         self.msg = msg
         self.detailed_msg = detailed_msg
 
 
+class PerImageProcessingResult(NamedTuple):
+    input_image_source_id: str
+    output: Product | ProcessingError
+
+    @property
+    def is_error(self) -> bool:
+        return isinstance(self.output, ProcessingError)
+
+
 class ProcessingResult:
-    def __init__(self, products: list[Product], errors: list[ProcessingError]):
-        self._products = products
-        self._errors = errors
+    def __init__(self, results: list[PerImageProcessingResult]):
+        self._results = results
 
     @property
-    def products(self) -> list[Product]:
-        return self._products
+    def product_results(self) -> list[PerImageProcessingResult]:
+        return [result for result in self._results if not result.is_error]
 
     @property
-    def errors(self) -> list[ProcessingError]:
-        return self._errors
+    def error_results(self) -> list[PerImageProcessingResult]:
+        return [result for result in self._results if result.is_error]
 
 
 class ImageProcessor:
@@ -43,17 +51,29 @@ class ImageProcessor:
 
 class _PriceTagProcessingResult(ProcessingResult):
     def __init__(self, chain_stage_descriptions: list[str]):
-        super().__init__([], [])
+        super().__init__([])
         self._chain_stage_descriptions = chain_stage_descriptions
 
-    def set_products_from_outputs(self, outputs: list[Output]):
-        self._products = [product for product in outputs if isinstance(product, Product)]
+    def set_products_from_outputs(self, inputs: list[Image], outputs: list[Output]):
+        if len(inputs) != len(outputs):
+            raise ProcessingError(msg="Number of inputs and outputs do not match")
+        self._results.extend(
+            [
+                PerImageProcessingResult(input_image_source_id=input_image.id, output=output)
+                for input_image, output in zip(inputs, outputs)
+                if isinstance(output, Product)
+            ]
+        )
 
     def add_error_from_run_tree(self, run_tree: RunTree):
         for stage_index, stage in enumerate(run_tree.child_runs):
             if stage.error:
                 msg = self._make_stage_error_msg(stage_index)
-                self._errors.append(ProcessingError(run_tree.inputs, msg, stage.error))
+                err = ProcessingError(msg, stage.error)
+                self._results.append(
+                    # TODO: run_tree.inputs["image"] contains image data and not ID
+                    PerImageProcessingResult(input_image_source_id=run_tree.inputs["image"], output=err)
+                )
 
     def _make_stage_error_msg(self, stage_index: int) -> str:
         if stage_index >= len(self._chain_stage_descriptions):
@@ -154,7 +174,7 @@ As a category, use from these: {categories}.
         result = _PriceTagProcessingResult(self._chain_stage_descriptions)
         chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree, on_end=self._adjust_barcode)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=self._max_concurrency), return_exceptions=True)
-        result.set_products_from_outputs(outputs)
+        result.set_products_from_outputs(images, outputs)
         return result
 
     def _make_input_data(self, image: str) -> dict[str, str]:

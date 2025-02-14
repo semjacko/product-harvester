@@ -15,6 +15,8 @@ from product_harvester.processors import (
     PriceTagImageProcessor,
     ProcessingResult,
     _BarcodeReader,
+    PerImageProcessingResult,
+    ProcessingError,
 )
 from product_harvester.product import Product
 
@@ -26,19 +28,19 @@ class TestImageProcessor(TestCase):
 
 
 class TestPriceTagImageProcessor(TestCase):
-    class _TestProcessingError:
-        def __init__(self, input_image: str, msg: str, detailed_msg: str):
-            self.input_image = input_image
-            self.msg = msg
-            self.detailed_msg = detailed_msg
 
-    def _assert_result(self, result: ProcessingResult, products: list[Product], errors: list[_TestProcessingError]):
-        self.assertEqual(products, result.products)
-        self.assertEqual(len(errors), len(result.errors))
-        for result_error, want_error in zip(result.errors, errors):
-            self.assertEqual(result_error.input["image"], want_error.input_image)
-            self.assertEqual(want_error.msg, result_error.msg)
-            self.assertIn(want_error.detailed_msg, result_error.detailed_msg)
+    def _assert_result(self, result: ProcessingResult, want_result: ProcessingResult):
+        self.assertEqual(len(result._results), len(want_result._results))
+        self.assertEqual(len(result.error_results), len(want_result.error_results))
+        self.assertEqual(result.product_results, want_result.product_results)
+        for result, want_result in zip(result._results, want_result._results):
+            self.assertEqual(result.input_image_source_id, want_result.input_image_source_id)
+            self.assertEqual(result.is_error, want_result.is_error)
+            if want_result.is_error:
+                self.assertEqual(result.output.msg, want_result.output.msg)
+                self.assertIn(want_result.output.detailed_msg, result.output.detailed_msg)
+            else:
+                self.assertEqual(result.output, want_result.output)
 
     def test_process_success(self):
         # TODO: Assert data flow (inputs) between chain stages
@@ -60,7 +62,13 @@ class TestPriceTagImageProcessor(TestCase):
                 Image(id="image3", data="/image3.jpg"),
             ]
         )
-        self._assert_result(result, mock_products, [])
+        want_result = ProcessingResult(
+            results=[
+                PerImageProcessingResult(input_image_source_id=f"image{i}", output=mock_product)
+                for i, mock_product in enumerate(mock_products, start=1)
+            ]
+        )
+        self._assert_result(result, want_result)
 
     def test_process_success_adjust_barcode(self):
         mock_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
@@ -69,7 +77,10 @@ class TestPriceTagImageProcessor(TestCase):
         processor._barcode_reader.read_barcode.return_value = 45678
         result = processor.process(images=[Image(id="image1", data="/image1.jpg")])
         mock_product.barcode = 45678
-        self._assert_result(result, [mock_product], [])
+        want_result = ProcessingResult(
+            results=[PerImageProcessingResult(input_image_source_id=f"image1", output=mock_product)]
+        )
+        self._assert_result(result, want_result)
 
     def test_process_adjust_barcode_failure(self):
         mock_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
@@ -77,7 +88,10 @@ class TestPriceTagImageProcessor(TestCase):
         processor = self._prepare_processor(fake_model)
         processor._barcode_reader.read_barcode.side_effect = ValueError("wat")
         result = processor.process(images=[Image(id="image1", data="/image1.jpg")])
-        self._assert_result(result, [mock_product], [])
+        want_result = ProcessingResult(
+            results=[PerImageProcessingResult(input_image_source_id="image1", output=mock_product)]
+        )
+        self._assert_result(result, want_result)
 
     def test_process_empty_response_from_model(self):
         fake_model = self._prepare_fake_model_with_responses([""] * 2)
@@ -85,22 +99,23 @@ class TestPriceTagImageProcessor(TestCase):
         result = processor.process(
             images=[Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.png")]
         )
-        self._assert_result(
-            result,
-            [],
-            [
-                self._TestProcessingError(
-                    input_image="/image1.jpg",
-                    msg="Failed during parsing of extracted data from image",
-                    detailed_msg="OutputParserException",
+        want_result = ProcessingResult(
+            results=[
+                PerImageProcessingResult(
+                    input_image_source_id="/image1.jpg",
+                    output=ProcessingError(
+                        "Failed during parsing of extracted data from image", "OutputParserException"
+                    ),
                 ),
-                self._TestProcessingError(
-                    input_image="/image2.png",
-                    msg="Failed during parsing of extracted data from image",
-                    detailed_msg="OutputParserException",
+                PerImageProcessingResult(
+                    input_image_source_id="/image2.png",
+                    output=ProcessingError(
+                        "Failed during parsing of extracted data from image", "OutputParserException"
+                    ),
                 ),
-            ],
+            ]
         )
+        self._assert_result(result, want_result)
 
     def test_process_invalid_response_json_from_model(self):
         mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
@@ -114,17 +129,22 @@ class TestPriceTagImageProcessor(TestCase):
         result = processor.process(
             images=[Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.jpg")]
         )
-        self._assert_result(
-            result,
-            [mock_valid_product],
-            [
-                self._TestProcessingError(
-                    input_image="/image2.jpg",
-                    msg="Failed during parsing of extracted data from image",
-                    detailed_msg="OutputParserException",
-                )
-            ],
+        want_result = ProcessingResult(
+            results=[
+                PerImageProcessingResult(
+                    input_image_source_id="/image2.jpg",
+                    output=ProcessingError(
+                        "Failed during parsing of extracted data from image", "OutputParserException"
+                    ),
+                ),
+                PerImageProcessingResult(
+                    input_image_source_id="image1",
+                    output=mock_valid_product,
+                ),
+            ]
         )
+
+        self._assert_result(result, want_result)
 
     def test_process_incomplete_product_response_from_model(self):
         mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
@@ -144,39 +164,42 @@ class TestPriceTagImageProcessor(TestCase):
                 Image(id="image3", data="/image3.jpg"),
             ]
         )
-        self._assert_result(
-            result,
-            [mock_valid_product],
-            [
-                self._TestProcessingError(
-                    input_image="/image1.jpeg",
-                    msg="Failed during parsing of extracted data from image",
-                    detailed_msg="OutputParserException",
+        want_result = ProcessingResult(
+            results=[
+                PerImageProcessingResult(
+                    input_image_source_id="/image1.jpeg",
+                    output=ProcessingError(
+                        "Failed during parsing of extracted data from image", "OutputParserException"
+                    ),
                 ),
-                self._TestProcessingError(
-                    input_image="/image3.jpg",
-                    msg="Failed during parsing of extracted data from image",
-                    detailed_msg="OutputParserException",
+                PerImageProcessingResult(
+                    input_image_source_id="/image3.jpg",
+                    output=ProcessingError(
+                        "Failed during parsing of extracted data from image", "OutputParserException"
+                    ),
                 ),
-            ],
+                PerImageProcessingResult(
+                    input_image_source_id="image2",
+                    output=mock_valid_product,
+                ),
+            ]
         )
+        self._assert_result(result, want_result)
 
     def test_process_model_exception(self):
         fake_model = Mock()
         fake_model.side_effect = FakeListChatModelError()
         processor = self._prepare_processor(fake_model)
         result = processor.process(images=[Image(id="image1", data="/image1.png")])
-        self._assert_result(
-            result,
-            [],
-            [
-                self._TestProcessingError(
-                    input_image="/image1.png",
-                    msg="Failed during extracting data from image",
-                    detailed_msg="FakeListChatModelError",
-                )
-            ],
+        want_result = ProcessingResult(
+            results=[
+                PerImageProcessingResult(
+                    input_image_source_id="/image1.png",
+                    output=ProcessingError("Failed during extracting data from image", "FakeListChatModelError"),
+                ),
+            ]
         )
+        self._assert_result(result, want_result)
 
     def test_process_unknown_stage_exception(self):
         fake_model = Mock()
@@ -187,17 +210,15 @@ class TestPriceTagImageProcessor(TestCase):
         mock_result = _PriceTagProcessingResult(["a"])
         with patch("product_harvester.processors._PriceTagProcessingResult", return_value=mock_result):
             result = processor.process(images=[Image(id="image1", data="/image1.png")])
-            self._assert_result(
-                result,
-                [],
-                [
-                    self._TestProcessingError(
-                        input_image="/image1.png",
-                        msg="Unknown failure",
-                        detailed_msg="FakeListChatModelError",
-                    )
-                ],
-            )
+        want_result = ProcessingResult(
+            results=[
+                PerImageProcessingResult(
+                    input_image_source_id="/image1.png",
+                    output=ProcessingError("Unknown failure", "FakeListChatModelError"),
+                ),
+            ]
+        )
+        self._assert_result(result, want_result)
 
     @staticmethod
     def _prepare_fake_model_with_responses(responses: list[str]):
