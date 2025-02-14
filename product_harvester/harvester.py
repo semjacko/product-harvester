@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Generator
 
+from product_harvester.image import Image
 from product_harvester.importers import ProductsImporter
 from product_harvester.processors import ProcessingError, ProcessingResult, ImageProcessor
 from product_harvester.product import Product
@@ -59,7 +60,7 @@ class ProductsHarvester:
             products = self._extract_products_and_track_errors(result)
             self._import_products(products)
 
-    def _generate_image_batches(self, batch_size: int = 8) -> Generator[list[str], None, None]:
+    def _generate_image_batches(self, batch_size: int = 8) -> Generator[list[Image], None, None]:
         try:
             images_generator = self._retriever.retrieve_images()
         except Exception as e:
@@ -71,8 +72,8 @@ class ProductsHarvester:
             if len(batch) < batch_size:
                 return
 
-    def _make_images_batch(self, generator: Generator[str, None, None], batch_size: int = 8) -> list[str]:
-        batch: list[str] = []
+    def _make_images_batch(self, generator: Generator[Image, None, None], batch_size: int = 8) -> list[Image]:
+        batch: list[Image] = []
         for i in range(batch_size):
             try:
                 batch.append(next(generator))
@@ -82,14 +83,15 @@ class ProductsHarvester:
                 self._track_errors([HarvestError("Failed to retrieve image", {"detailed_info": str(e)})])  # TODO: input
         return batch
 
-    def _process_images(self, images: list[str]) -> ProcessingResult | None:
+    def _process_images(self, images: list[Image]) -> ProcessingResult | None:
         if not images:
             return None
         try:
             result = self._processor.process(images)
         except Exception as e:
+            image_ids = [image.id for image in images]
             self._track_errors(
-                [HarvestError("Failed to extract data from the images", {"input": images, "detailed_info": str(e)})]
+                [HarvestError("Failed to extract data from the images", {"input": image_ids, "detailed_info": str(e)})]
             )
             return None
         return result

@@ -8,6 +8,7 @@ from langchain_core.language_models.fake_chat_models import FakeListChatModelErr
 from langchain_core.messages import BaseMessage
 from pydantic import TypeAdapter
 
+from product_harvester.image import Image
 from product_harvester.processors import (
     _PriceTagProcessingResult,
     ImageProcessor,
@@ -21,7 +22,7 @@ from product_harvester.product import Product
 class TestImageProcessor(TestCase):
     def test_process_not_implemented(self):
         with self.assertRaises(NotImplementedError):
-            ImageProcessor().process(["/image.png"])
+            ImageProcessor().process([Image(id="image", data="/image.png")])
 
 
 class TestPriceTagImageProcessor(TestCase):
@@ -52,7 +53,13 @@ class TestPriceTagImageProcessor(TestCase):
         responses = [product.model_dump_json() for product in mock_products]
         fake_model = self._prepare_fake_model_with_responses(responses)
         processor = self._prepare_processor(fake_model)
-        result = processor.process(images=["/image1.jpg", "/image2.png", "/image3.jpg"])
+        result = processor.process(
+            images=[
+                Image(id="image1", data="/image1.jpg"),
+                Image(id="image2", data="/image2.jpg"),
+                Image(id="image3", data="/image3.jpg"),
+            ]
+        )
         self._assert_result(result, mock_products, [])
 
     def test_process_success_adjust_barcode(self):
@@ -60,7 +67,7 @@ class TestPriceTagImageProcessor(TestCase):
         fake_model = self._prepare_fake_model_with_responses([mock_product.model_dump_json()])
         processor = self._prepare_processor(fake_model)
         processor._barcode_reader.read_barcode.return_value = 45678
-        result = processor.process(images=["/image1.jpg"])
+        result = processor.process(images=[Image(id="image1", data="/image1.jpg")])
         mock_product.barcode = 45678
         self._assert_result(result, [mock_product], [])
 
@@ -69,13 +76,15 @@ class TestPriceTagImageProcessor(TestCase):
         fake_model = self._prepare_fake_model_with_responses([mock_product.model_dump_json()])
         processor = self._prepare_processor(fake_model)
         processor._barcode_reader.read_barcode.side_effect = ValueError("wat")
-        result = processor.process(images=["/image1.jpg"])
+        result = processor.process(images=[Image(id="image1", data="/image1.jpg")])
         self._assert_result(result, [mock_product], [])
 
     def test_process_empty_response_from_model(self):
         fake_model = self._prepare_fake_model_with_responses([""] * 2)
         processor = self._prepare_processor(fake_model)
-        result = processor.process(images=["/image1.jpg", "/image2.png"])
+        result = processor.process(
+            images=[Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.png")]
+        )
         self._assert_result(
             result,
             [],
@@ -102,7 +111,9 @@ class TestPriceTagImageProcessor(TestCase):
             ]
         )
         processor = self._prepare_processor(fake_model)
-        result = processor.process(images=["/image1.jpg", "/image2.jpg"])
+        result = processor.process(
+            images=[Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.jpg")]
+        )
         self._assert_result(
             result,
             [mock_valid_product],
@@ -126,7 +137,13 @@ class TestPriceTagImageProcessor(TestCase):
             ]
         )
         processor = self._prepare_processor(fake_model)
-        result = processor.process(images=["/image1.jpeg", "/image2.jpg", "/image3.jpg"])
+        result = processor.process(
+            images=[
+                Image(id="image1", data="/image1.jpeg"),
+                Image(id="image2", data="/image2.jpg"),
+                Image(id="image3", data="/image3.jpg"),
+            ]
+        )
         self._assert_result(
             result,
             [mock_valid_product],
@@ -148,7 +165,7 @@ class TestPriceTagImageProcessor(TestCase):
         fake_model = Mock()
         fake_model.side_effect = FakeListChatModelError()
         processor = self._prepare_processor(fake_model)
-        result = processor.process(images=["/image1.png"])
+        result = processor.process(images=[Image(id="image1", data="/image1.png")])
         self._assert_result(
             result,
             [],
@@ -169,7 +186,7 @@ class TestPriceTagImageProcessor(TestCase):
         # Patch instantiation of the object, so it will be created with description just for the 1st (prompt) stage
         mock_result = _PriceTagProcessingResult(["a"])
         with patch("product_harvester.processors._PriceTagProcessingResult", return_value=mock_result):
-            result = processor.process(images=["/image1.png"])
+            result = processor.process(images=[Image(id="image1", data="/image1.png")])
             self._assert_result(
                 result,
                 [],
@@ -223,9 +240,9 @@ class TestBarcodeReader(TestCase):
         mock_barcode = MagicMock()
         mock_barcode.data.decode.return_value = "789012"
         mock_decode.return_value = [mock_barcode]
-        barcode = _BarcodeReader().read_barcode("http://example.com/image.png")
+        barcode = _BarcodeReader().read_barcode("https://example.com/image.png")
         self.assertEqual(barcode, 789012)
-        mock_requests_get.assert_called_once_with("http://example.com/image.png")
+        mock_requests_get.assert_called_once_with("https://example.com/image.png")
         mock_imdecode.assert_called_once()
         mock_decode.assert_called_once()
 

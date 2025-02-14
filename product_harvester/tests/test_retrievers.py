@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch, call
 
 from product_harvester.clients.google_drive_client import GoogleDriveFileInfo
+from product_harvester.image import Image
 from product_harvester.retrievers import (
     ImagesRetriever,
     LocalImagesRetriever,
@@ -28,14 +29,14 @@ class TestLocalImagesRetriever(TestCase):
         retriever = LocalImagesRetriever("/")
         mock_images = list(retriever.retrieve_images())
         mock_glob.assert_called_once_with("/*")
-        self.assertEqual(mock_images, ["/image.jpg"])
+        self.assertEqual(mock_images, [Image(id="/image.jpg", data="/image.jpg")])
 
     @patch("product_harvester.retrievers.glob", return_value=["./relative.png"])
     def test_relative_path(self, mock_glob):
         retriever = LocalImagesRetriever("./images")
         mock_images = list(retriever.retrieve_images())
         mock_glob.assert_called_once_with("images/*")
-        self.assertEqual(mock_images, ["./relative.png"])
+        self.assertEqual(mock_images, [Image(id="./relative.png", data="./relative.png")])
 
     @patch("product_harvester.retrievers.glob", return_value=[])
     def test_long_path(self, mock_glob):
@@ -57,7 +58,14 @@ class TestLocalImagesRetriever(TestCase):
         retriever = LocalImagesRetriever("folder")
         mock_images = list(retriever.retrieve_images())
         mock_glob.assert_called_once_with("folder/*")
-        self.assertEqual(mock_images, ["folder/img1.jpg", "folder/img2.Jpeg", "folder/img3.PNG"])
+        self.assertEqual(
+            mock_images,
+            [
+                Image(id="folder/img1.jpg", data="folder/img1.jpg"),
+                Image(id="folder/img2.Jpeg", data="folder/img2.Jpeg"),
+                Image(id="folder/img3.PNG", data="folder/img3.PNG"),
+            ],
+        )
 
     @patch("product_harvester.retrievers.glob", return_value=["some_image.png"])
     def test_error(self, mock_glob):
@@ -88,11 +96,13 @@ class TestGoogleDriveImagesRetriever(TestCase):
             GoogleDriveFileInfo(id="file_id_2", mime_type="image/jpeg"),
         ]
         mock_client.get_image_files_info.return_value = iter(test_files)
-        test_contents = ["/some/binary", "/another/binary"]
-        mock_client.download_file_content.side_effect = test_contents
+        mock_client.download_file_content.side_effect = ["/some/binary", "/another/binary"]
         retriever = GoogleDriveImagesRetriever.from_client_config(self._test_client_config, self._test_folder_id)
         mocked_client.assert_called_once_with(self._test_client_config)
-        self.assertEqual(list(retriever.retrieve_images()), test_contents)
+        self.assertEqual(
+            list(retriever.retrieve_images()),
+            [Image(id="file_id_1", data="/some/binary"), Image(id="file_id_2", data="/another/binary")],
+        )
         mock_client.get_image_files_info.assert_called_once_with(self._test_folder_id)
         mock_client.download_file_content.assert_has_calls([call(test_file) for test_file in test_files])
 
@@ -101,12 +111,11 @@ class TestGoogleDriveImagesRetriever(TestCase):
         mock_client = mocked_client.return_value
         test_file = GoogleDriveFileInfo(id="file_id_1", mime_type="image/png")
         mock_client.get_image_files_info.return_value = iter([test_file])
-        test_contents = ["/some/binary"]
-        mock_client.download_file_content.side_effect = test_contents
+        mock_client.download_file_content.side_effect = ["/some/binary"]
         retriever = GoogleDriveImagesRetriever.from_client_config(self._test_client_config, self._test_folder_id)
         mocked_client.assert_called_once_with(self._test_client_config)
         retriever.set_folder("other_folder")
-        self.assertEqual(list(retriever.retrieve_images()), test_contents)
+        self.assertEqual(list(retriever.retrieve_images()), [Image(id="file_id_1", data="/some/binary")])
         mock_client.get_image_files_info.assert_called_once_with("other_folder")
         mock_client.download_file_content.assert_called_once_with(test_file)
 

@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import call, Mock, patch, MagicMock
 
 from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester, StdOutErrorTracker
+from product_harvester.image import Image
 from product_harvester.processors import ProcessingError, ProcessingResult
 from product_harvester.product import Product
 
@@ -66,7 +67,7 @@ class TestProductsHarvester(TestCase):
         )
 
     def test_harvest_imports_products(self):
-        mock_images = ["/image1.jpg", "/image2.png"]
+        mock_images = [Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.png")]
         self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         mock_products = [
             Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo"),
@@ -83,7 +84,11 @@ class TestProductsHarvester(TestCase):
         self._mock_importer.import_product.assert_has_calls(want_calls)
 
     def test_harvest_imports_products_and_tracks_errors(self):
-        mock_images = ["/image1.jpg", "/wat.jpeg", "/wtf.png"]
+        mock_images = [
+            Image(id="image1", data="/image1.jpg"),
+            Image(id="image2", data="/wat.jpeg"),
+            Image(id="image3", data="/wtf.png"),
+        ]
         self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         mock_products = [Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode=123, category="jedlo")]
         self._mock_processor.process.return_value = ProcessingResult(
@@ -140,21 +145,21 @@ class TestProductsHarvester(TestCase):
 
     def test_harvest_retriever_generator_error(self):
         mock_images = MagicMock()
-        mock_images.__next__.side_effect = ["/image1.jpg", ValueError("Some error")]
+        mock_images.__next__.side_effect = [Image(id="image1", data="/image1.jpg"), ValueError("Some error")]
         self._mock_retriever.retrieve_images.return_value = mock_images
         mock_product = Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo")
         self._mock_processor.process.return_value = ProcessingResult([mock_product], [])
         self._harvester.harvest()
 
         self._mock_retriever.retrieve_images.assert_called_once()
-        self._mock_processor.process.assert_called_once_with(["/image1.jpg"])
+        self._mock_processor.process.assert_called_once_with([Image(id="image1", data="/image1.jpg")])
         self._mock_tracker.track_errors.assert_called_once_with(
             [HarvestError("Failed to retrieve image", {"detailed_info": "Some error"})]
         )
         self._mock_importer.import_product.assert_called_once_with(mock_product)
 
     def test_harvest_processor_error(self):
-        mock_images = ["/image1.png", "/image2.jpeg"]
+        mock_images = [Image(id="image1", data="/image1.png"), Image(id="image2", data="/image2.jpeg")]
         self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         self._mock_processor.process.side_effect = ValueError("Something went wrong during processing")
 
@@ -167,7 +172,7 @@ class TestProductsHarvester(TestCase):
                 HarvestError(
                     "Failed to extract data from the images",
                     {
-                        "input": ["/image1.png", "/image2.jpeg"],
+                        "input": ["image1", "image2"],
                         "detailed_info": "Something went wrong during processing",
                     },
                 )
@@ -176,7 +181,7 @@ class TestProductsHarvester(TestCase):
         self._mock_importer.import_product.assert_not_called()
 
     def test_harvest_importer_error(self):
-        mock_images = ["/image1.jpg", "/image2.png"]
+        mock_images = [Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.png")]
         self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         mock_products = [
             Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo"),

@@ -11,6 +11,7 @@ from langchain_core.runnables.utils import Output
 from langsmith import RunTree
 from pyzbar.pyzbar import decode
 
+from product_harvester.image import Image
 from product_harvester.product import Product
 
 
@@ -36,7 +37,7 @@ class ProcessingResult:
 
 
 class ImageProcessor:
-    def process(self, images: list[str]) -> ProcessingResult:
+    def process(self, images: list[Image]) -> ProcessingResult:
         raise NotImplementedError()
 
 
@@ -148,8 +149,8 @@ As a category, use from these: {categories}.
         ]
         self._barcode_reader = _BarcodeReader()
 
-    def process(self, images: list[str]) -> ProcessingResult:
-        input_data = [self._make_input_data(image) for image in images]
+    def process(self, images: list[Image]) -> ProcessingResult:
+        input_data = [self._make_input_data(image.data) for image in images]
         result = _PriceTagProcessingResult(self._chain_stage_descriptions)
         chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree, on_end=self._adjust_barcode)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=self._max_concurrency), return_exceptions=True)

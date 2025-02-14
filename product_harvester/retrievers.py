@@ -3,10 +3,11 @@ from glob import glob
 from typing import Generator, Any, Self
 
 from product_harvester.clients.google_drive_client import GoogleDriveClient
+from product_harvester.image import Image
 
 
 class ImagesRetriever:
-    def retrieve_images(self) -> Generator[str, None, None]:
+    def retrieve_images(self) -> Generator[Image, None, None]:
         raise NotImplementedError()
 
 
@@ -16,8 +17,8 @@ class LocalImagesRetriever(ImagesRetriever):
     def __init__(self, folder_path: str):
         self._folder_path = os.path.normpath(folder_path)
 
-    def retrieve_images(self) -> Generator[str, None, None]:
-        yield from self._retrieve_image_paths()
+    def retrieve_images(self) -> Generator[Image, None, None]:
+        yield from [Image(id=image_path, data=image_path) for image_path in self._retrieve_image_paths()]
 
     def _retrieve_image_paths(self) -> list[str]:
         return [
@@ -44,4 +45,5 @@ class GoogleDriveImagesRetriever(ImagesRetriever):
 
     def retrieve_images(self) -> Generator[str, None, None]:
         for file in self._client.get_image_files_info(self._folder_id):
-            yield self._client.download_file_content(file)
+            data = self._client.download_file_content(file)
+            yield Image(id=file.id, data=data)
