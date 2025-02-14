@@ -173,9 +173,10 @@ As a category, use from these: {categories}.
     def process(self, images: list[Image]) -> ProcessingResult:
         input_data = [self._make_input_data(image) for image in images]
         result = _PriceTagProcessingResult(self._chain_stage_descriptions)
-        chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree, on_end=self._adjust_barcode)
+        chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=self._max_concurrency), return_exceptions=True)
         result.set_products_from_outputs(images, outputs)
+        self._adjust_barcodes(result)
         return result
 
     def _make_input_data(self, image: Image) -> dict[str, str]:
@@ -186,13 +187,13 @@ As a category, use from these: {categories}.
             "categories": self._categories_instructions,
         }
 
-    def _adjust_barcode(self, run_tree: RunTree):
-        image_data = run_tree.inputs["image"]
-        parsing_stage_id = 2
-        parsing_stage = run_tree.child_runs[parsing_stage_id]
-        product = parsing_stage.outputs.get("output") if parsing_stage.outputs else None
-        if not isinstance(product, Product):
-            return
+    def _adjust_barcodes(self, result: _PriceTagProcessingResult):
+        for product_result in result.product_results:
+            self._adjust_barcode(product_result)
+
+    def _adjust_barcode(self, result: PerImageProcessingResult):
+        image_data = result.input_image.data
+        product = result.output
         try:
             barcode = self._barcode_reader.read_barcode(image_data)
             if barcode:
