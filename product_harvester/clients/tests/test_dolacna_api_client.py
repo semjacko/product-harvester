@@ -23,6 +23,7 @@ class TestDoLacnaClient(TestCase):
                 brand="Clever",
                 unit="kg",
                 category_id=3,
+                source_image="image1",
             ),
             price=1.45,
             shop_id=12,

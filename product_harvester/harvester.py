@@ -2,9 +2,8 @@ import logging
 from typing import Any, Generator
 
 from product_harvester.image import Image
-from product_harvester.importers import ProductsImporter
+from product_harvester.importers import ProductsImporter, ImportedProduct
 from product_harvester.processors import ProcessingResult, ImageProcessor, PerImageProcessingResult
-from product_harvester.product import Product
 from product_harvester.retrievers import ImagesRetriever
 
 
@@ -80,7 +79,7 @@ class ProductsHarvester:
             except StopIteration:
                 break
             except Exception as e:
-                self._track_errors([HarvestError("Failed to retrieve image", {"detailed_info": str(e)})])  # TODO: input
+                self._track_errors([HarvestError("Failed to retrieve image", {"detailed_info": str(e)})])
         return batch
 
     def _process_images(self, images: list[Image]) -> ProcessingResult | None:
@@ -104,9 +103,10 @@ class ProductsHarvester:
 
     def _import_products(self, product_results: list[PerImageProcessingResult]):
         for result in product_results:
-            self._import_product(result.output)
+            imported_product = ImportedProduct(**result.output.model_dump(), source_image_id=result.input_image.id)
+            self._import_product(imported_product)
 
-    def _import_product(self, product: Product):
+    def _import_product(self, product: ImportedProduct):
         try:
             self._importer.import_product(product)
         except Exception as e:

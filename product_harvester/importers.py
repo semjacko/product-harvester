@@ -1,23 +1,29 @@
 from typing import Literal, Self
 
+from pydantic import Field
+
 from product_harvester.clients.dolacna_api_client import DoLacnaAPIProduct, DoLacnaAPIProductDetail, DoLacnaClient
 from product_harvester.product import Product
 
 
+class ImportedProduct(Product):
+    source_image_id: str = Field(strict=True, default="")
+
+
 class ProductsImporter:
-    def import_product(self, product: Product):
+    def import_product(self, product: ImportedProduct):
         raise NotImplementedError()
 
 
 class StdOutProductsImporter(ProductsImporter):
-    def import_product(self, product: Product):
+    def import_product(self, product: ImportedProduct):
         print(product)
 
 
-class _DoLacnaAPIProductAdapter(DoLacnaAPIProduct):
+class _DoLacnaAPIProductFactory(DoLacnaAPIProduct):
 
     @classmethod
-    def from_product(cls, product: Product, category_id: int, shop_id: int) -> DoLacnaAPIProduct:
+    def from_product(cls, product: ImportedProduct, category_id: int, shop_id: int) -> DoLacnaAPIProduct:
         unit, amount = cls._convert_unit(product)
         return DoLacnaAPIProduct(
             product=DoLacnaAPIProductDetail(
@@ -27,6 +33,7 @@ class _DoLacnaAPIProductAdapter(DoLacnaAPIProduct):
                 brand=product.brand,
                 unit=unit,
                 category_id=category_id,
+                source_image=product.source_image_id,
             ),
             price=product.price,
             shop_id=shop_id,
@@ -57,10 +64,10 @@ class DoLacnaAPIProductsImporter(ProductsImporter):
         categories = self._client.get_categories()
         return {category.name: category.id for category in categories}
 
-    def import_product(self, product: Product):
+    def import_product(self, product: ImportedProduct):
         try:
             category_id = self._category_to_id_mapping[product.category]
-            imported_product = _DoLacnaAPIProductAdapter.from_product(
+            imported_product = _DoLacnaAPIProductFactory.from_product(
                 product, category_id=category_id, shop_id=self._shop_id
             )
             self._client.import_product(imported_product)

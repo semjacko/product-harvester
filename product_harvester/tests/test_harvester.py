@@ -3,6 +3,7 @@ from unittest.mock import call, Mock, patch, MagicMock
 
 from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester, StdOutErrorTracker
 from product_harvester.image import Image
+from product_harvester.importers import ImportedProduct
 from product_harvester.processors import ProcessingError, ProcessingResult, PerImageProcessingResult
 from product_harvester.product import Product
 
@@ -85,7 +86,10 @@ class TestProductsHarvester(TestCase):
         self._mock_retriever.retrieve_images.assert_called_once()
         self._mock_processor.process.assert_called_once_with(mock_images)
         self._mock_tracker.track_errors.assert_not_called()
-        want_calls = [call(mock_product) for mock_product in mock_products]
+        want_calls = [
+            call(ImportedProduct(**mock_product.model_dump(), source_image_id=mock_image.id))
+            for mock_product, mock_image in zip(mock_products, mock_images)
+        ]
         self._mock_importer.import_product.assert_has_calls(want_calls)
 
     def test_harvest_imports_products_and_tracks_errors(self):
@@ -126,7 +130,9 @@ class TestProductsHarvester(TestCase):
                 ),
             ]
         )
-        self._mock_importer.import_product.assert_called_once_with(mock_product)
+        self._mock_importer.import_product.assert_called_once_with(
+            ImportedProduct(**mock_product.model_dump(), source_image_id="image1")
+        )
 
     def test_harvest_empty_retriever_result(self):
         self._mock_retriever.retrieve_images.return_value = iter([])
@@ -166,7 +172,9 @@ class TestProductsHarvester(TestCase):
         self._mock_tracker.track_errors.assert_called_once_with(
             [HarvestError("Failed to retrieve image", {"detailed_info": "Some error"})]
         )
-        self._mock_importer.import_product.assert_called_once_with(mock_product)
+        self._mock_importer.import_product.assert_called_once_with(
+            ImportedProduct(**mock_product.model_dump(), source_image_id="image1")
+        )
 
     def test_harvest_processor_error(self):
         mock_images = [Image(id="image1", data="/image1.png"), Image(id="image2", data="/image2.jpeg")]
@@ -214,13 +222,23 @@ class TestProductsHarvester(TestCase):
                 HarvestError(
                     "Failed to to import extracted product data",
                     {
-                        "input": Product(
-                            name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, brand="", category="jedlo"
+                        "input": ImportedProduct(
+                            name="Banana",
+                            qty=1.0,
+                            qty_unit="kg",
+                            price=1.99,
+                            barcode=456,
+                            brand="",
+                            category="jedlo",
+                            source_image_id="image1",
                         ),
                         "detailed_info": "Some importing error",
                     },
                 )
             ]
         )
-        want_calls = [call(mock_product) for mock_product in mock_products]
+        want_calls = [
+            call(ImportedProduct(**mock_product.model_dump(), source_image_id=mock_image.id))
+            for mock_product, mock_image in zip(mock_products, mock_images)
+        ]
         self._mock_importer.import_product.assert_has_calls(want_calls)

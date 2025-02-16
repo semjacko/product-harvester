@@ -4,8 +4,8 @@ from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
 from product_harvester.harvester import ProductsHarvester
+from product_harvester.importers import ImportedProduct
 from product_harvester.processors import PriceTagImageProcessor
-from product_harvester.product import Product
 from server.error_collector import ErrorCollector
 from server.products_collector import ProductsCollector
 from server.request import ProcessRequest
@@ -24,10 +24,10 @@ async def validation_exception_handler(_: Request, exc: RequestValidationError):
 
 
 @api_app.post("/process/pricetag")
-async def process_pricetag(process_request: ProcessRequest) -> Product | None:
+async def process_pricetag(process_request: ProcessRequest) -> ImportedProduct | None:
     """
     Processes a base64 image to extract a data of a single product.
-    Returns a Product instance or raises an HTTP 500 error if any processing error occurs.
+    Returns a ImportedProduct instance or raises an HTTP 500 error if any processing error occurs.
     """
     error_collector = ErrorCollector()
     products_collector = ProductsCollector()

@@ -5,12 +5,13 @@ from pydantic import BaseModel, Field, TypeAdapter
 
 
 class DoLacnaAPIProductDetail(BaseModel):
-    barcode: int = Field(strict=True, gt=0)
-    name: str = Field(strict=True, min_length=1)
-    amount: float = Field(strict=True, gt=0)
-    brand: str = Field(strict=True, default="")
-    unit: Literal["l", "kg", "pcs"] = Field()
-    category_id: int = Field(strict=True, gt=0)
+    barcode: int
+    name: str
+    amount: float
+    brand: str
+    unit: Literal["l", "kg", "pcs"]
+    category_id: int
+    source_image: str
 
 
 class DoLacnaAPIProduct(BaseModel):
