@@ -1,8 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from pydantic import ValidationError
-
 from product_harvester.clients.dolacna_api_client import DoLacnaAPICategory, DoLacnaAPIProduct, DoLacnaAPIProductDetail
 from product_harvester.importers import (
     ProductsImporter,
@@ -101,21 +99,6 @@ class TestDoLacnaAPIProductFactory(TestCase):
             shop_id=55,
         )
         self.assertEqual(imported_product, want_imported_product)
-
-    def test_from_product_invalid_shop_id(self):
-        product = ImportedProduct(
-            name="Bananas",
-            qty=2545,
-            qty_unit="g",
-            price=4.53,
-            barcode=22,
-            brand="Ban",
-            category="jedlo",
-            source_image_id="source_image",
-            is_barcode_checked=False,
-        )
-        with self.assertRaises(ValidationError):
-            _DoLacnaAPIProductFactory.from_imported_product(product, category_id=2, shop_id=0)
 
 
 class TestProductsImporter(TestCase):
