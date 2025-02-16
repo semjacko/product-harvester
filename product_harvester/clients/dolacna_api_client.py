@@ -1,14 +1,14 @@
-from typing import Literal
+from typing import Literal, Optional
 
 import requests
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 
 
 class DoLacnaAPIProductDetail(BaseModel):
     barcode: int
     name: str
     amount: float
-    brand: str
+    brand: Optional[str]
     unit: Literal["l", "kg", "pcs"]
     category_id: int
     source_image: str
@@ -16,14 +16,14 @@ class DoLacnaAPIProductDetail(BaseModel):
 
 
 class DoLacnaAPIProduct(BaseModel):
-    product: DoLacnaAPIProductDetail = Field(strict=True)
-    price: float = Field(strict=True, gt=0)
-    shop_id: int = Field(strict=True, gt=0)
+    product: DoLacnaAPIProductDetail
+    price: float
+    shop_id: int
 
 
 class DoLacnaAPICategory(BaseModel):
-    id: int = Field(strict=True)
-    name: str = Field(strict=True)
+    id: int
+    name: str
 
 
 class DoLacnaClient:
