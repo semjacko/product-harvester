@@ -9,6 +9,10 @@ from product_harvester.product import Product
 class ImportedProduct(Product):
     source_image_id: str = Field(strict=True, default="")
 
+    @classmethod
+    def from_product(cls, product: Product, source_image_id: str) -> Self:
+        return ImportedProduct(**product.model_dump(), source_image_id=source_image_id)
+
 
 class ProductsImporter:
     def import_product(self, product: ImportedProduct):
@@ -23,7 +27,7 @@ class StdOutProductsImporter(ProductsImporter):
 class _DoLacnaAPIProductFactory(DoLacnaAPIProduct):
 
     @classmethod
-    def from_product(cls, product: ImportedProduct, category_id: int, shop_id: int) -> DoLacnaAPIProduct:
+    def from_imported_product(cls, product: ImportedProduct, category_id: int, shop_id: int) -> DoLacnaAPIProduct:
         unit, amount = cls._convert_unit(product)
         return DoLacnaAPIProduct(
             product=DoLacnaAPIProductDetail(
@@ -67,7 +71,7 @@ class DoLacnaAPIProductsImporter(ProductsImporter):
     def import_product(self, product: ImportedProduct):
         try:
             category_id = self._category_to_id_mapping[product.category]
-            imported_product = _DoLacnaAPIProductFactory.from_product(
+            imported_product = _DoLacnaAPIProductFactory.from_imported_product(
                 product, category_id=category_id, shop_id=self._shop_id
             )
             self._client.import_product(imported_product)

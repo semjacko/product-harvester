@@ -87,7 +87,7 @@ class TestProductsHarvester(TestCase):
         self._mock_processor.process.assert_called_once_with(mock_images)
         self._mock_tracker.track_errors.assert_not_called()
         want_calls = [
-            call(ImportedProduct(**mock_product.model_dump(), source_image_id=mock_image.id))
+            call(ImportedProduct.from_product(mock_product, source_image_id=mock_image.id))
             for mock_product, mock_image in zip(mock_products, mock_images)
         ]
         self._mock_importer.import_product.assert_has_calls(want_calls)
@@ -131,7 +131,7 @@ class TestProductsHarvester(TestCase):
             ]
         )
         self._mock_importer.import_product.assert_called_once_with(
-            ImportedProduct(**mock_product.model_dump(), source_image_id="image1")
+            ImportedProduct.from_product(mock_product, source_image_id="image1")
         )
 
     def test_harvest_empty_retriever_result(self):
@@ -173,7 +173,7 @@ class TestProductsHarvester(TestCase):
             [HarvestError("Failed to retrieve image", {"detailed_info": "Some error"})]
         )
         self._mock_importer.import_product.assert_called_once_with(
-            ImportedProduct(**mock_product.model_dump(), source_image_id="image1")
+            ImportedProduct.from_product(mock_product, source_image_id="image1")
         )
 
     def test_harvest_processor_error(self):
@@ -222,23 +222,24 @@ class TestProductsHarvester(TestCase):
                 HarvestError(
                     "Failed to to import extracted product data",
                     {
-                        "input": ImportedProduct(
-                            name="Banana",
-                            qty=1.0,
-                            qty_unit="kg",
-                            price=1.99,
-                            barcode=456,
-                            brand="",
-                            category="jedlo",
-                            source_image_id="image1",
-                        ),
+                        "input": "image1",
+                        "imported_product": {
+                            "name": "Banana",
+                            "qty": 1.0,
+                            "qty_unit": "kg",
+                            "price": 1.99,
+                            "barcode": 456,
+                            "brand": "",
+                            "category": "jedlo",
+                            "source_image_id": "image1",
+                        },
                         "detailed_info": "Some importing error",
                     },
                 )
             ]
         )
         want_calls = [
-            call(ImportedProduct(**mock_product.model_dump(), source_image_id=mock_image.id))
+            call(ImportedProduct.from_product(mock_product, source_image_id=mock_image.id))
             for mock_product, mock_image in zip(mock_products, mock_images)
         ]
         self._mock_importer.import_product.assert_has_calls(want_calls)

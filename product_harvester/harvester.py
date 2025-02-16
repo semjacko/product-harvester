@@ -103,17 +103,24 @@ class ProductsHarvester:
 
     def _import_products(self, product_results: list[PerImageProcessingResult]):
         for result in product_results:
-            imported_product = ImportedProduct(**result.output.model_dump(), source_image_id=result.input_image.id)
-            self._import_product(imported_product)
+            self._import_product(result)
 
-    def _import_product(self, product: ImportedProduct):
+    def _import_product(self, product_result: PerImageProcessingResult):
+        imported_product = ImportedProduct.from_product(
+            product=product_result.output, source_image_id=product_result.input_image.id
+        )
         try:
-            self._importer.import_product(product)
+            self._importer.import_product(imported_product)
         except Exception as e:
             self._track_errors(
                 [
                     HarvestError(
-                        "Failed to to import extracted product data", {"input": product, "detailed_info": str(e)}
+                        "Failed to to import extracted product data",
+                        {
+                            "input": product_result.input_image.id,
+                            "imported_product": imported_product.model_dump(),
+                            "detailed_info": str(e),
+                        },
                     )
                 ]
             )

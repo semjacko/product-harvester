@@ -26,7 +26,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
             category="voda",
             source_image_id="source_image",
         )
-        imported_product = _DoLacnaAPIProductFactory.from_product(product, category_id=1, shop_id=1)
+        imported_product = _DoLacnaAPIProductFactory.from_imported_product(product, category_id=1, shop_id=1)
         want_imported_product = DoLacnaAPIProduct(
             product=DoLacnaAPIProductDetail(
                 barcode=product.barcode,
@@ -53,7 +53,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
             category="jedlo",
             source_image_id="some_source_image",
         )
-        imported_product = _DoLacnaAPIProductFactory.from_product(product, category_id=2, shop_id=4)
+        imported_product = _DoLacnaAPIProductFactory.from_imported_product(product, category_id=2, shop_id=4)
         want_imported_product = DoLacnaAPIProduct(
             product=DoLacnaAPIProductDetail(
                 barcode=product.barcode,
@@ -80,7 +80,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
             category="ostatné",
             source_image_id="source_image",
         )
-        imported_product = _DoLacnaAPIProductFactory.from_product(product, category_id=3, shop_id=55)
+        imported_product = _DoLacnaAPIProductFactory.from_imported_product(product, category_id=3, shop_id=55)
         want_imported_product = DoLacnaAPIProduct(
             product=DoLacnaAPIProductDetail(
                 barcode=product.barcode,
@@ -108,7 +108,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
             source_image_id="source_image",
         )
         with self.assertRaises(ValidationError):
-            _DoLacnaAPIProductFactory.from_product(product, category_id=2, shop_id=0)
+            _DoLacnaAPIProductFactory.from_imported_product(product, category_id=2, shop_id=0)
 
 
 class TestProductsImporter(TestCase):
@@ -161,7 +161,9 @@ class TestDoLacnaAPIProductsImporter(TestCase):
         )
         self._category_id = 2
         self._shop_id = 12
-        self._imported_product = _DoLacnaAPIProductFactory.from_product(self._product, self._category_id, self._shop_id)
+        self._imported_product = _DoLacnaAPIProductFactory.from_imported_product(
+            self._product, self._category_id, self._shop_id
+        )
 
     @patch("product_harvester.importers.DoLacnaClient")
     def test_import_product_success(self, mocked_client):
