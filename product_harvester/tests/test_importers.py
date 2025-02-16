@@ -25,6 +25,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
             brand="Rajo",
             category="voda",
             source_image_id="source_image",
+            is_barcode_checked=True,
         )
         imported_product = _DoLacnaAPIProductFactory.from_imported_product(product, category_id=1, shop_id=1)
         want_imported_product = DoLacnaAPIProduct(
@@ -36,6 +37,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
                 unit="l",
                 category_id=1,
                 source_image=product.source_image_id,
+                is_barcode_checked=True,
             ),
             price=product.price,
             shop_id=1,
@@ -52,6 +54,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
             brand="Ban",
             category="jedlo",
             source_image_id="some_source_image",
+            is_barcode_checked=False,
         )
         imported_product = _DoLacnaAPIProductFactory.from_imported_product(product, category_id=2, shop_id=4)
         want_imported_product = DoLacnaAPIProduct(
@@ -63,6 +66,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
                 unit="kg",
                 category_id=2,
                 source_image=product.source_image_id,
+                is_barcode_checked=False,
             ),
             price=product.price,
             shop_id=4,
@@ -79,6 +83,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
             brand="Som",
             category="ostatné",
             source_image_id="source_image",
+            is_barcode_checked=False,
         )
         imported_product = _DoLacnaAPIProductFactory.from_imported_product(product, category_id=3, shop_id=55)
         want_imported_product = DoLacnaAPIProduct(
@@ -90,6 +95,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
                 unit="pcs",
                 category_id=3,
                 source_image=product.source_image_id,
+                is_barcode_checked=False,
             ),
             price=product.price,
             shop_id=55,
@@ -106,6 +112,7 @@ class TestDoLacnaAPIProductFactory(TestCase):
             brand="Ban",
             category="jedlo",
             source_image_id="source_image",
+            is_barcode_checked=False,
         )
         with self.assertRaises(ValidationError):
             _DoLacnaAPIProductFactory.from_imported_product(product, category_id=2, shop_id=0)
@@ -122,6 +129,7 @@ class TestProductsImporter(TestCase):
             brand="Rajo",
             category="voda",
             source_image_id="source_image",
+            is_barcode_checked=False,
         )
         with self.assertRaises(NotImplementedError):
             ProductsImporter().import_product(product)
@@ -138,6 +146,7 @@ class TestStdOutProductsImporter(TestCase):
             barcode=123,
             category="jedlo",
             source_image_id="source_image",
+            is_barcode_checked=True,
         )
 
     @patch("builtins.print")
@@ -158,6 +167,7 @@ class TestDoLacnaAPIProductsImporter(TestCase):
             barcode=123,
             category="jedlo",
             source_image_id="source_image",
+            is_barcode_checked=False,
         )
         self._category_id = 2
         self._shop_id = 12

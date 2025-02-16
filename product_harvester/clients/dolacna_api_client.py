@@ -12,6 +12,7 @@ class DoLacnaAPIProductDetail(BaseModel):
     unit: Literal["l", "kg", "pcs"]
     category_id: int
     source_image: str
+    is_barcode_checked: bool
 
 
 class DoLacnaAPIProduct(BaseModel):

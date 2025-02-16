@@ -8,10 +8,13 @@ from product_harvester.product import Product
 
 class ImportedProduct(Product):
     source_image_id: str = Field(strict=True, default="")
+    is_barcode_checked: bool = Field(strict=True, default=False)
 
     @classmethod
-    def from_product(cls, product: Product, source_image_id: str) -> Self:
-        return ImportedProduct(**product.model_dump(), source_image_id=source_image_id)
+    def from_product(cls, product: Product, source_image_id: str, is_barcode_checked: bool) -> Self:
+        return ImportedProduct(
+            **product.model_dump(), source_image_id=source_image_id, is_barcode_checked=is_barcode_checked
+        )
 
 
 class ProductsImporter:
@@ -38,6 +41,7 @@ class _DoLacnaAPIProductFactory(DoLacnaAPIProduct):
                 unit=unit,
                 category_id=category_id,
                 source_image=product.source_image_id,
+                is_barcode_checked=product.is_barcode_checked,
             ),
             price=product.price,
             shop_id=shop_id,

@@ -107,7 +107,9 @@ class ProductsHarvester:
 
     def _import_product(self, product_result: PerImageProcessingResult):
         imported_product = ImportedProduct.from_product(
-            product=product_result.output, source_image_id=product_result.input_image.id
+            product=product_result.output,
+            source_image_id=product_result.input_image.id,
+            is_barcode_checked=product_result.is_barcode_checked,
         )
         try:
             self._importer.import_product(imported_product)

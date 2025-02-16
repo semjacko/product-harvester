@@ -1,5 +1,4 @@
 import base64
-from typing import NamedTuple
 
 import cv2
 import numpy as np
@@ -10,6 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.runnables.utils import Output
 from langsmith import RunTree
+from pydantic import BaseModel, ConfigDict
 from pyzbar.pyzbar import decode
 
 from product_harvester.image import Image
@@ -22,9 +22,12 @@ class ProcessingError(Exception):
         self.detailed_msg = detailed_msg
 
 
-class PerImageProcessingResult(NamedTuple):
+class PerImageProcessingResult(BaseModel):
     input_image: Image
     output: Product | ProcessingError
+    is_barcode_checked: bool = False
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @property
     def is_error(self) -> bool:
@@ -198,5 +201,6 @@ As a category, use from these: {categories}.
             barcode = self._barcode_reader.read_barcode(image_data)
             if barcode:
                 product.barcode = barcode
+                result.is_barcode_checked = True
         except Exception:
             return

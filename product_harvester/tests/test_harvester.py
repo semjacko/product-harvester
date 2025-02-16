@@ -76,7 +76,7 @@ class TestProductsHarvester(TestCase):
         ]
         self._mock_processor.process.return_value = ProcessingResult(
             results=[
-                PerImageProcessingResult(input_image=input_image, output=mock_product)
+                PerImageProcessingResult(input_image=input_image, output=mock_product, is_barcode_checked=True)
                 for input_image, mock_product in zip(mock_images, mock_products)
             ]
         )
@@ -87,7 +87,7 @@ class TestProductsHarvester(TestCase):
         self._mock_processor.process.assert_called_once_with(mock_images)
         self._mock_tracker.track_errors.assert_not_called()
         want_calls = [
-            call(ImportedProduct.from_product(mock_product, source_image_id=mock_image.id))
+            call(ImportedProduct.from_product(mock_product, source_image_id=mock_image.id, is_barcode_checked=True))
             for mock_product, mock_image in zip(mock_products, mock_images)
         ]
         self._mock_importer.import_product.assert_has_calls(want_calls)
@@ -131,7 +131,7 @@ class TestProductsHarvester(TestCase):
             ]
         )
         self._mock_importer.import_product.assert_called_once_with(
-            ImportedProduct.from_product(mock_product, source_image_id="image1")
+            ImportedProduct.from_product(mock_product, source_image_id="image1", is_barcode_checked=False)
         )
 
     def test_harvest_empty_retriever_result(self):
@@ -163,7 +163,9 @@ class TestProductsHarvester(TestCase):
         self._mock_retriever.retrieve_images.return_value = mock_images
         mock_product = Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo")
         self._mock_processor.process.return_value = ProcessingResult(
-            results=[PerImageProcessingResult(input_image=valid_input_image, output=mock_product)]
+            results=[
+                PerImageProcessingResult(input_image=valid_input_image, output=mock_product, is_barcode_checked=True)
+            ]
         )
         self._harvester.harvest()
 
@@ -173,7 +175,7 @@ class TestProductsHarvester(TestCase):
             [HarvestError("Failed to retrieve image", {"detailed_info": "Some error"})]
         )
         self._mock_importer.import_product.assert_called_once_with(
-            ImportedProduct.from_product(mock_product, source_image_id="image1")
+            ImportedProduct.from_product(mock_product, source_image_id="image1", is_barcode_checked=True)
         )
 
     def test_harvest_processor_error(self):
@@ -232,6 +234,7 @@ class TestProductsHarvester(TestCase):
                             "brand": "",
                             "category": "jedlo",
                             "source_image_id": "image1",
+                            "is_barcode_checked": False,
                         },
                         "detailed_info": "Some importing error",
                     },
@@ -239,7 +242,7 @@ class TestProductsHarvester(TestCase):
             ]
         )
         want_calls = [
-            call(ImportedProduct.from_product(mock_product, source_image_id=mock_image.id))
+            call(ImportedProduct.from_product(mock_product, source_image_id=mock_image.id, is_barcode_checked=False))
             for mock_product, mock_image in zip(mock_products, mock_images)
         ]
         self._mock_importer.import_product.assert_has_calls(want_calls)

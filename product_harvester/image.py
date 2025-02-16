@@ -1,6 +1,6 @@
-from typing import NamedTuple
+from pydantic import BaseModel
 
 
-class Image(NamedTuple):
+class Image(BaseModel):
     id: str
     data: str

@@ -1,15 +1,16 @@
 import base64
 import io
-from typing import Generator, Any, NamedTuple
+from typing import Generator, Any
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import Resource, build
 from googleapiclient.http import MediaIoBaseDownload
+from pydantic import BaseModel
 
 
-class GoogleDriveFileInfo(NamedTuple):
+class GoogleDriveFileInfo(BaseModel):
     id: str
     mime_type: str
 

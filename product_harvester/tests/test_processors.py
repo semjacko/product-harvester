@@ -77,7 +77,9 @@ class TestPriceTagImageProcessor(TestCase):
         input_image = Image(id="image1", data="/image1.jpg")
         result = processor.process(images=[input_image])
         mock_product.barcode = 45678
-        want_result = ProcessingResult(results=[PerImageProcessingResult(input_image=input_image, output=mock_product)])
+        want_result = ProcessingResult(
+            results=[PerImageProcessingResult(input_image=input_image, output=mock_product, is_barcode_checked=True)]
+        )
         self._assert_result(result, want_result)
 
     def test_process_adjust_barcode_failure(self):
