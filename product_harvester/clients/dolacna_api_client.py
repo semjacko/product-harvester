@@ -27,7 +27,7 @@ class DoLacnaAPICategory(BaseModel):
 
 
 class DoLacnaClient:
-    _base_url: str = "https://dolacna-admin-api.default.offli.eu"
+    _base_url: str = "https://usetri-api.livelypond-189c8f13.polandcentral.azurecontainerapps.io"
     _products_endpoint = f"{_base_url}/products"
     _categories_endpoint = f"{_base_url}/categories"
 
