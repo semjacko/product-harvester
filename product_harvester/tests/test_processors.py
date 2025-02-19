@@ -47,9 +47,9 @@ class TestPriceTagImageProcessor(TestCase):
         # language=JSON
         mock_products = TypeAdapter(List[Product]).validate_json(
             """[
-    {"name": "Banana", "price": 3.45, "qty": 1, "qty_unit": "kg", "barcode": 123, "category": "fruit"},
-    {"name": "Bread", "price": 2.5, "qty": 3, "qty_unit": "pcs", "barcode": 345, "brand": "Rajo", "category": "fruit"},
-    {"name": "Milk", "price": 4.45, "qty": 1000, "qty_unit": "ml", "barcode": 567, "category": "milk"}
+    {"name": "Banana", "price": 3.45, "qty": 1, "qty_unit": "kg", "barcode": "123", "category": "fruit"},
+    {"name": "Bread", "price": 2.5, "qty": 3, "qty_unit": "pcs", "barcode": "45", "brand": "Rajo", "category": "fruit"},
+    {"name": "Milk", "price": 4.45, "qty": 1000, "qty_unit": "ml", "barcode": "567", "category": "milk"}
             ]""",
         )
         responses = [product.model_dump_json() for product in mock_products]
@@ -70,7 +70,7 @@ class TestPriceTagImageProcessor(TestCase):
         self._assert_result(result, want_result)
 
     def test_process_success_adjust_barcode(self):
-        mock_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
+        mock_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode="123", category="fruit")
         fake_model = self._prepare_fake_model_with_responses([mock_product.model_dump_json()])
         processor = self._prepare_processor(fake_model)
         processor._barcode_reader.read_barcode.return_value = 45678
@@ -83,7 +83,7 @@ class TestPriceTagImageProcessor(TestCase):
         self._assert_result(result, want_result)
 
     def test_process_adjust_barcode_failure(self):
-        mock_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
+        mock_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode="123", category="fruit")
         fake_model = self._prepare_fake_model_with_responses([mock_product.model_dump_json()])
         processor = self._prepare_processor(fake_model)
         processor._barcode_reader.read_barcode.side_effect = ValueError("wat")
@@ -111,7 +111,7 @@ class TestPriceTagImageProcessor(TestCase):
         self._assert_result(result, want_result)
 
     def test_process_invalid_response_json_from_model(self):
-        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
+        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode="123", category="fruit")
         fake_model = self._prepare_fake_model_with_responses(
             [
                 mock_valid_product.model_dump_json(),
@@ -139,7 +139,7 @@ class TestPriceTagImageProcessor(TestCase):
         self._assert_result(result, want_result)
 
     def test_process_incomplete_product_response_from_model(self):
-        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode=123, category="fruit")
+        mock_valid_product = Product(name="Banana", price=3.45, qty=1, qty_unit="kg", barcode="123", category="fruit")
         # language=JSON
         fake_model = self._prepare_fake_model_with_responses(
             [
@@ -235,7 +235,7 @@ class TestBarcodeReader(TestCase):
         mock_barcode.data.decode.return_value = "123456"
         mock_decode.return_value = [mock_barcode]
         barcode = _BarcodeReader().read_barcode("data:image/png;base64,test_base64_image")
-        self.assertEqual(barcode, 123456)
+        self.assertEqual(barcode, "123456")
         mock_bas64_decode.assert_called_once_with("test_base64_image")
         mock_imdecode.assert_called_once()
         mock_decode.assert_called_once()
@@ -252,7 +252,7 @@ class TestBarcodeReader(TestCase):
         mock_barcode.data.decode.return_value = "789012"
         mock_decode.return_value = [mock_barcode]
         barcode = _BarcodeReader().read_barcode("https://example.com/image.png")
-        self.assertEqual(barcode, 789012)
+        self.assertEqual(barcode, "789012")
         mock_requests_get.assert_called_once_with("https://example.com/image.png")
         mock_imdecode.assert_called_once()
         mock_decode.assert_called_once()
@@ -266,7 +266,7 @@ class TestBarcodeReader(TestCase):
         mock_barcode.data.decode.return_value = "654321"
         mock_decode.return_value = [mock_barcode, "asddf123"]
         barcode = _BarcodeReader().read_barcode("/path/to/image.png")
-        self.assertEqual(barcode, 654321)
+        self.assertEqual(barcode, "654321")
         _mock_open.assert_called_once_with("/path/to/image.png", "rb")
         mock_imdecode.assert_called_once()
         mock_decode.assert_called_once()

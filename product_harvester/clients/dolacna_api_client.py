@@ -5,7 +5,7 @@ from pydantic import BaseModel, TypeAdapter
 
 
 class DoLacnaAPIProductDetail(BaseModel):
-    barcode: int
+    barcode: str
     name: str
     amount: float
     brand: Optional[str]

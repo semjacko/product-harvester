@@ -17,7 +17,7 @@ class TestDoLacnaClient(TestCase):
         self._client = DoLacnaClient(token=self._token)
         self._imported_product = DoLacnaAPIProduct(
             product=DoLacnaAPIProductDetail(
-                barcode=123,
+                barcode="123",
                 name="Bananas",
                 amount=1.5,
                 brand="Clever",

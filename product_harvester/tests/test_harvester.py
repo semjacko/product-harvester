@@ -71,8 +71,8 @@ class TestProductsHarvester(TestCase):
         mock_images = [Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.png")]
         self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         mock_products = [
-            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo"),
-            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode=66053, category="voda"),
+            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode="456", category="jedlo"),
+            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode="66053", category="voda"),
         ]
         self._mock_processor.process.return_value = ProcessingResult(
             results=[
@@ -99,7 +99,7 @@ class TestProductsHarvester(TestCase):
             Image(id="image3", data="/wtf.png"),
         ]
         self._mock_retriever.retrieve_images.return_value = iter(mock_images)
-        mock_product = Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode=123, category="jedlo")
+        mock_product = Product(name="Bread", qty=3, qty_unit="pcs", price=3.35, barcode="123", category="jedlo")
         self._mock_processor.process.return_value = ProcessingResult(
             results=[
                 PerImageProcessingResult(input_image=mock_images[0], output=mock_product),
@@ -161,7 +161,7 @@ class TestProductsHarvester(TestCase):
         mock_images = MagicMock()
         mock_images.__next__.side_effect = [valid_input_image, ValueError("Some error")]
         self._mock_retriever.retrieve_images.return_value = mock_images
-        mock_product = Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo")
+        mock_product = Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode="456", category="jedlo")
         self._mock_processor.process.return_value = ProcessingResult(
             results=[
                 PerImageProcessingResult(input_image=valid_input_image, output=mock_product, is_barcode_checked=True)
@@ -204,8 +204,8 @@ class TestProductsHarvester(TestCase):
         mock_images = [Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.png")]
         self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         mock_products = [
-            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode=456, category="jedlo"),
-            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode=66053, category="voda"),
+            Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode="456", category="jedlo"),
+            Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode="66053", category="voda"),
         ]
         self._mock_processor.process.return_value = ProcessingResult(
             results=[
@@ -230,7 +230,7 @@ class TestProductsHarvester(TestCase):
                             "qty": 1.0,
                             "qty_unit": "kg",
                             "price": 1.99,
-                            "barcode": 456,
+                            "barcode": "456",
                             "brand": "",
                             "category": "jedlo",
                             "source_image_id": "image1",

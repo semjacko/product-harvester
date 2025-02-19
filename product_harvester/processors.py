@@ -89,11 +89,11 @@ class _BarcodeReader:
     def __init__(self):
         self._current_image_data = ""
 
-    def read_barcode(self, image_data: str) -> int | None:
+    def read_barcode(self, image_data: str) -> str | None:
         self._current_image_data = image_data
         image = self._load_image()
         barcodes = decode(image)
-        return int(barcodes[0].data.decode("utf-8")) if barcodes else None
+        return str(int(barcodes[0].data.decode("utf-8"))) if barcodes else None
 
     def _load_image(self) -> np.ndarray:
         if self._is_base64_encoded():
