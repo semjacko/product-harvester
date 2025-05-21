@@ -1,17 +1,17 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from product_harvester.clients.dolacna_api_client import DoLacnaAPICategory, DoLacnaAPIProduct, DoLacnaAPIProductDetail
+from product_harvester.clients.usetri_api_client import UsetriAPICategory, UsetriAPIProduct, UsetriAPIProductDetail
 from product_harvester.importers import (
     ProductsImporter,
-    DoLacnaAPIProductsImporter,
+    UsetriAPIProductsImporter,
     StdOutProductsImporter,
-    _DoLacnaAPIProductFactory,
+    _UsetriAPIProductFactory,
     ImportedProduct,
 )
 
 
-class TestDoLacnaAPIProductFactory(TestCase):
+class TestUsetriAPIProductFactory(TestCase):
 
     def test_from_product_convert_unit_ml_to_l(self):
         product = ImportedProduct(
@@ -25,9 +25,9 @@ class TestDoLacnaAPIProductFactory(TestCase):
             source_image_id="source_image",
             is_barcode_checked=True,
         )
-        imported_product = _DoLacnaAPIProductFactory.from_imported_product(product, category_id=1, shop_id=1)
-        want_imported_product = DoLacnaAPIProduct(
-            product=DoLacnaAPIProductDetail(
+        imported_product = _UsetriAPIProductFactory.from_imported_product(product, category_id=1, shop_id=1)
+        want_imported_product = UsetriAPIProduct(
+            product=UsetriAPIProductDetail(
                 barcode=product.barcode,
                 name=product.name,
                 amount=1.5,
@@ -54,9 +54,9 @@ class TestDoLacnaAPIProductFactory(TestCase):
             source_image_id="some_source_image",
             is_barcode_checked=False,
         )
-        imported_product = _DoLacnaAPIProductFactory.from_imported_product(product, category_id=2, shop_id=4)
-        want_imported_product = DoLacnaAPIProduct(
-            product=DoLacnaAPIProductDetail(
+        imported_product = _UsetriAPIProductFactory.from_imported_product(product, category_id=2, shop_id=4)
+        want_imported_product = UsetriAPIProduct(
+            product=UsetriAPIProductDetail(
                 barcode=product.barcode,
                 name=product.name,
                 amount=2.545,
@@ -83,9 +83,9 @@ class TestDoLacnaAPIProductFactory(TestCase):
             source_image_id="source_image",
             is_barcode_checked=False,
         )
-        imported_product = _DoLacnaAPIProductFactory.from_imported_product(product, category_id=3, shop_id=55)
-        want_imported_product = DoLacnaAPIProduct(
-            product=DoLacnaAPIProductDetail(
+        imported_product = _UsetriAPIProductFactory.from_imported_product(product, category_id=3, shop_id=55)
+        want_imported_product = UsetriAPIProduct(
+            product=UsetriAPIProductDetail(
                 barcode=product.barcode,
                 name=product.name,
                 amount=25,
@@ -138,7 +138,7 @@ class TestStdOutProductsImporter(TestCase):
         print_mock.assert_called_once_with(self._product)
 
 
-class TestDoLacnaAPIProductsImporter(TestCase):
+class TestUsetriAPIProductsImporter(TestCase):
     def setUp(self):
         self._token = "test_token"
         self._product = ImportedProduct(
@@ -154,40 +154,40 @@ class TestDoLacnaAPIProductsImporter(TestCase):
         )
         self._category_id = 2
         self._shop_id = 12
-        self._imported_product = _DoLacnaAPIProductFactory.from_imported_product(
+        self._imported_product = _UsetriAPIProductFactory.from_imported_product(
             self._product, self._category_id, self._shop_id
         )
 
-    @patch("product_harvester.importers.DoLacnaClient")
+    @patch("product_harvester.importers.UsetriClient")
     def test_import_product_success(self, mocked_client):
         mock_client = mocked_client.return_value
         mock_client.get_categories.return_value = [
-            DoLacnaAPICategory(id=1, name="drink"),
-            DoLacnaAPICategory(id=2, name="jedlo"),
+            UsetriAPICategory(id=1, name="drink"),
+            UsetriAPICategory(id=2, name="jedlo"),
         ]
-        importer = DoLacnaAPIProductsImporter.from_api_token(token=self._token, shop_id=self._shop_id)
+        importer = UsetriAPIProductsImporter.from_api_token(token=self._token, shop_id=self._shop_id)
         mocked_client.assert_called_once_with(self._token)
         mock_client.get_categories.assert_called_once()
         importer.import_product(self._product)
         mock_client.import_product.assert_called_once_with(self._imported_product)
 
-    @patch("product_harvester.importers.DoLacnaClient")
+    @patch("product_harvester.importers.UsetriClient")
     def test_import_product_invalid_category(self, mocked_client):
         mock_client = mocked_client.return_value
-        mock_client.get_categories.return_value = [DoLacnaAPICategory(id=1, name="drink")]
-        importer = DoLacnaAPIProductsImporter.from_api_token(token=self._token, shop_id=self._shop_id)
+        mock_client.get_categories.return_value = [UsetriAPICategory(id=1, name="drink")]
+        importer = UsetriAPIProductsImporter.from_api_token(token=self._token, shop_id=self._shop_id)
         mocked_client.assert_called_once_with(self._token)
         mock_client.get_categories.assert_called_once()
         with self.assertRaises(KeyError):
             importer.import_product(self._product)
         mock_client.import_product.assert_not_called()
 
-    @patch("product_harvester.importers.DoLacnaClient")
+    @patch("product_harvester.importers.UsetriClient")
     def test_import_product_failure(self, mocked_client):
         mock_client = mocked_client.return_value
         mock_client.import_product.side_effect = ValueError("Some error")
-        mock_client.get_categories.return_value = [DoLacnaAPICategory(id=2, name="jedlo")]
-        importer = DoLacnaAPIProductsImporter.from_api_token(token=self._token, shop_id=self._shop_id)
+        mock_client.get_categories.return_value = [UsetriAPICategory(id=2, name="jedlo")]
+        importer = UsetriAPIProductsImporter.from_api_token(token=self._token, shop_id=self._shop_id)
         mocked_client.assert_called_once_with(self._token)
         mock_client.get_categories.assert_called_once()
         with self.assertRaises(ValueError):

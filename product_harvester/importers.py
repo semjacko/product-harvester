@@ -2,7 +2,7 @@ from typing import Literal, Self
 
 from pydantic import Field
 
-from product_harvester.clients.dolacna_api_client import DoLacnaAPIProduct, DoLacnaAPIProductDetail, DoLacnaClient
+from product_harvester.clients.usetri_api_client import UsetriAPIProduct, UsetriAPIProductDetail, UsetriClient
 from product_harvester.product import Product
 
 
@@ -27,13 +27,13 @@ class StdOutProductsImporter(ProductsImporter):
         print(product)
 
 
-class _DoLacnaAPIProductFactory(DoLacnaAPIProduct):
+class _UsetriAPIProductFactory(UsetriAPIProduct):
 
     @classmethod
-    def from_imported_product(cls, product: ImportedProduct, category_id: int, shop_id: int) -> DoLacnaAPIProduct:
+    def from_imported_product(cls, product: ImportedProduct, category_id: int, shop_id: int) -> UsetriAPIProduct:
         unit, amount = cls._convert_unit(product)
-        return DoLacnaAPIProduct(
-            product=DoLacnaAPIProductDetail(
+        return UsetriAPIProduct(
+            product=UsetriAPIProductDetail(
                 barcode=product.barcode,
                 name=product.name,
                 amount=amount,
@@ -58,15 +58,15 @@ class _DoLacnaAPIProductFactory(DoLacnaAPIProduct):
                 return product.qty_unit, product.qty
 
 
-class DoLacnaAPIProductsImporter(ProductsImporter):
-    def __init__(self, client: DoLacnaClient, shop_id: int):
+class UsetriAPIProductsImporter(ProductsImporter):
+    def __init__(self, client: UsetriClient, shop_id: int):
         self._shop_id = shop_id
         self._client = client
         self._category_to_id_mapping = self._make_category_to_id_mapping()
 
     @classmethod
     def from_api_token(cls, token: str, shop_id: int) -> Self:
-        return DoLacnaAPIProductsImporter(DoLacnaClient(token), shop_id)
+        return UsetriAPIProductsImporter(UsetriClient(token), shop_id)
 
     def _make_category_to_id_mapping(self) -> dict[str, int]:
         categories = self._client.get_categories()
@@ -75,7 +75,7 @@ class DoLacnaAPIProductsImporter(ProductsImporter):
     def import_product(self, product: ImportedProduct):
         try:
             category_id = self._category_to_id_mapping[product.category]
-            imported_product = _DoLacnaAPIProductFactory.from_imported_product(
+            imported_product = _UsetriAPIProductFactory.from_imported_product(
                 product, category_id=category_id, shop_id=self._shop_id
             )
             self._client.import_product(imported_product)
