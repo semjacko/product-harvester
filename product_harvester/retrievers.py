@@ -1,4 +1,5 @@
 import os
+from abc import ABC, abstractmethod
 from glob import glob
 from typing import Generator, Any, Self
 
@@ -6,9 +7,9 @@ from product_harvester.clients.google_drive_client import GoogleDriveClient
 from product_harvester.image import Image
 
 
-class ImagesRetriever:
-    def retrieve_images(self) -> Generator[Image, None, None]:
-        raise NotImplementedError()
+class ImagesRetriever(ABC):
+    @abstractmethod
+    def retrieve_images(self) -> Generator[Image, None, None]: ...
 
 
 class LocalImagesRetriever(ImagesRetriever):

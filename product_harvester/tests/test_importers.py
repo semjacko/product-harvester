@@ -19,7 +19,7 @@ class TestUsetriAPIProductFactory(TestCase):
             qty=1500,
             qty_unit="ml",
             price=1,
-            barcode=123,
+            barcode="123",
             brand="Rajo",
             category="voda",
             source_image_id="source_image",
@@ -48,7 +48,7 @@ class TestUsetriAPIProductFactory(TestCase):
             qty=2545,
             qty_unit="g",
             price=4.53,
-            barcode=22,
+            barcode="22",
             brand="Ban",
             category="jedlo",
             source_image_id="some_source_image",
@@ -77,7 +77,7 @@ class TestUsetriAPIProductFactory(TestCase):
             qty=25,
             qty_unit="pcs",
             price=9.43,
-            barcode=13,
+            barcode="13",
             brand="Som",
             category="ostatné",
             source_image_id="source_image",
@@ -108,13 +108,13 @@ class TestProductsImporter(TestCase):
             qty=1500,
             qty_unit="ml",
             price=1,
-            barcode=123,
+            barcode="123",
             brand="Rajo",
             category="voda",
             source_image_id="source_image",
             is_barcode_checked=False,
         )
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             ProductsImporter().import_product(product)
 
 
@@ -126,7 +126,7 @@ class TestStdOutProductsImporter(TestCase):
             qty_unit="kg",
             price=1.45,
             brand="Clever",
-            barcode=123,
+            barcode="123",
             category="jedlo",
             source_image_id="source_image",
             is_barcode_checked=True,
@@ -147,7 +147,7 @@ class TestUsetriAPIProductsImporter(TestCase):
             qty_unit="kg",
             price=1.45,
             brand="Clever",
-            barcode=123,
+            barcode="123",
             category="jedlo",
             source_image_id="source_image",
             is_barcode_checked=False,

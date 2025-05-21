@@ -10,7 +10,7 @@ from product_harvester.product import Product
 
 class TestErrorTracker(TestCase):
     def test_not_implemented(self):
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             ErrorTracker().track_errors([])
 
 

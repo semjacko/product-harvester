@@ -12,7 +12,7 @@ from product_harvester.retrievers import (
 
 class TestImagesRetriever(TestCase):
     def test_not_implemented(self):
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             ImagesRetriever().retrieve_images()
 
 

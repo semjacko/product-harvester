@@ -1,4 +1,5 @@
 import base64
+from abc import ABC, abstractmethod
 
 import cv2
 import numpy as np
@@ -47,9 +48,9 @@ class ProcessingResult:
         return [result for result in self._results if result.is_error]
 
 
-class ImageProcessor:
-    def process(self, images: list[Image]) -> ProcessingResult:
-        raise NotImplementedError()
+class ImageProcessor(ABC):
+    @abstractmethod
+    def process(self, images: list[Image]) -> ProcessingResult: ...
 
 
 class _PriceTagProcessingResult(ProcessingResult):

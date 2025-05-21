@@ -23,7 +23,7 @@ from product_harvester.product import Product
 
 class TestImageProcessor(TestCase):
     def test_process_not_implemented(self):
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             ImageProcessor().process([Image(id="image", data="/image.png")])
 
 

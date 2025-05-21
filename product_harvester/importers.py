@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Literal, Self
 
 from pydantic import Field
@@ -17,9 +18,9 @@ class ImportedProduct(Product):
         )
 
 
-class ProductsImporter:
-    def import_product(self, product: ImportedProduct):
-        raise NotImplementedError()
+class ProductsImporter(ABC):
+    @abstractmethod
+    def import_product(self, product: ImportedProduct): ...
 
 
 class StdOutProductsImporter(ProductsImporter):

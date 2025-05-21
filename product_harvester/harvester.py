@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 from typing import Any, Generator
 
 from product_harvester.image import Image
@@ -16,9 +17,9 @@ class HarvestError(Exception):
         return isinstance(other, HarvestError) and self.msg == other.msg and self.extra == other.extra
 
 
-class ErrorTracker:
-    def track_errors(self, errors: list[HarvestError]):
-        raise NotImplementedError()
+class ErrorTracker(ABC):
+    @abstractmethod
+    def track_errors(self, errors: list[HarvestError]): ...
 
 
 class StdOutErrorTracker(ErrorTracker):
