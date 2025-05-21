@@ -4,18 +4,17 @@ from typing import Literal, Self
 from pydantic import Field
 
 from product_harvester.clients.usetri_api_client import UsetriAPIProduct, UsetriAPIProductDetail, UsetriClient
+from product_harvester.image import Image
 from product_harvester.product import Product
 
 
 class ImportedProduct(Product):
-    source_image_id: str = Field(strict=True, default="")
+    source_image: Image = Field(strict=True, default="")
     is_barcode_checked: bool = Field(strict=True, default=False)
 
     @classmethod
-    def from_product(cls, product: Product, source_image_id: str, is_barcode_checked: bool) -> Self:
-        return ImportedProduct(
-            **product.model_dump(), source_image_id=source_image_id, is_barcode_checked=is_barcode_checked
-        )
+    def from_product(cls, product: Product, source_image: Image, is_barcode_checked: bool) -> Self:
+        return ImportedProduct(**product.model_dump(), source_image=source_image, is_barcode_checked=is_barcode_checked)
 
 
 class ProductsImporter(ABC):
@@ -31,7 +30,9 @@ class StdOutProductsImporter(ProductsImporter):
 class _UsetriAPIProductFactory(UsetriAPIProduct):
 
     @classmethod
-    def from_imported_product(cls, product: ImportedProduct, category_id: int, shop_id: int) -> UsetriAPIProduct:
+    def from_imported_product(
+        cls, product: ImportedProduct, category_id: int, shop_id: int | None = None
+    ) -> UsetriAPIProduct:
         unit, amount = cls._convert_unit(product)
         return UsetriAPIProduct(
             product=UsetriAPIProductDetail(
@@ -41,11 +42,11 @@ class _UsetriAPIProductFactory(UsetriAPIProduct):
                 brand=product.brand,
                 unit=unit,
                 category_id=category_id,
-                source_image=product.source_image_id,
+                source_image=product.source_image.id,
                 is_barcode_checked=product.is_barcode_checked,
             ),
             price=product.price,
-            shop_id=shop_id,
+            shop_id=shop_id if shop_id is not None else product.source_image.meta["shop_id"],
         )
 
     @classmethod
@@ -60,13 +61,13 @@ class _UsetriAPIProductFactory(UsetriAPIProduct):
 
 
 class UsetriAPIProductsImporter(ProductsImporter):
-    def __init__(self, client: UsetriClient, shop_id: int):
+    def __init__(self, client: UsetriClient, shop_id: int | None = None):
         self._shop_id = shop_id
         self._client = client
         self._category_to_id_mapping = self._make_category_to_id_mapping()
 
     @classmethod
-    def from_api_token(cls, token: str, shop_id: int) -> Self:
+    def from_api_token(cls, token: str, shop_id: int | None = None) -> Self:
         return UsetriAPIProductsImporter(UsetriClient(token), shop_id)
 
     def _make_category_to_id_mapping(self) -> dict[str, int]:

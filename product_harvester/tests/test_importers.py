@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from product_harvester.clients.usetri_api_client import UsetriAPICategory, UsetriAPIProduct, UsetriAPIProductDetail
+from product_harvester.image import Image
 from product_harvester.importers import (
     ProductsImporter,
     UsetriAPIProductsImporter,
@@ -22,7 +23,7 @@ class TestUsetriAPIProductFactory(TestCase):
             barcode="123",
             brand="Rajo",
             category="voda",
-            source_image_id="source_image",
+            source_image=Image(id="source_image", data="whatever"),
             is_barcode_checked=True,
         )
         imported_product = _UsetriAPIProductFactory.from_imported_product(product, category_id=1, shop_id=1)
@@ -34,7 +35,7 @@ class TestUsetriAPIProductFactory(TestCase):
                 brand=product.brand,
                 unit="l",
                 category_id=1,
-                source_image=product.source_image_id,
+                source_image=product.source_image.id,
                 is_barcode_checked=True,
             ),
             price=product.price,
@@ -51,7 +52,7 @@ class TestUsetriAPIProductFactory(TestCase):
             barcode="22",
             brand="Ban",
             category="jedlo",
-            source_image_id="some_source_image",
+            source_image=Image(id="some_source_image", data="whatever"),
             is_barcode_checked=False,
         )
         imported_product = _UsetriAPIProductFactory.from_imported_product(product, category_id=2, shop_id=4)
@@ -63,7 +64,7 @@ class TestUsetriAPIProductFactory(TestCase):
                 brand=product.brand,
                 unit="kg",
                 category_id=2,
-                source_image=product.source_image_id,
+                source_image=product.source_image.id,
                 is_barcode_checked=False,
             ),
             price=product.price,
@@ -80,7 +81,7 @@ class TestUsetriAPIProductFactory(TestCase):
             barcode="13",
             brand="Som",
             category="ostatné",
-            source_image_id="source_image",
+            source_image=Image(id="source_image", data="whatever"),
             is_barcode_checked=False,
         )
         imported_product = _UsetriAPIProductFactory.from_imported_product(product, category_id=3, shop_id=55)
@@ -92,7 +93,7 @@ class TestUsetriAPIProductFactory(TestCase):
                 brand=product.brand,
                 unit="pcs",
                 category_id=3,
-                source_image=product.source_image_id,
+                source_image=product.source_image.id,
                 is_barcode_checked=False,
             ),
             price=product.price,
@@ -111,7 +112,7 @@ class TestProductsImporter(TestCase):
             barcode="123",
             brand="Rajo",
             category="voda",
-            source_image_id="source_image",
+            source_image=Image(id="source_image", data="whatever"),
             is_barcode_checked=False,
         )
         with self.assertRaises(TypeError):
@@ -128,7 +129,7 @@ class TestStdOutProductsImporter(TestCase):
             brand="Clever",
             barcode="123",
             category="jedlo",
-            source_image_id="source_image",
+            source_image=Image(id="source_image", data="whatever"),
             is_barcode_checked=True,
         )
 
@@ -149,7 +150,7 @@ class TestUsetriAPIProductsImporter(TestCase):
             brand="Clever",
             barcode="123",
             category="jedlo",
-            source_image_id="source_image",
+            source_image=Image(id="source_image", data="whatever"),
             is_barcode_checked=False,
         )
         self._category_id = 2

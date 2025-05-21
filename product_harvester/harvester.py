@@ -58,6 +58,7 @@ class ProductsHarvester:
         for images_batch in self._generate_image_batches():
             result = self._process_images(images_batch)
             product_results = self._extract_products_and_track_errors(result)
+            self._override_results_with_input_meta(product_results)
             self._import_products(product_results)
 
     def _generate_image_batches(self, batch_size: int = 8) -> Generator[list[Image], None, None]:
@@ -102,6 +103,11 @@ class ProductsHarvester:
         self._track_processing_errors(result.error_results)
         return result.product_results
 
+    @staticmethod
+    def _override_results_with_input_meta(product_results: list[PerImageProcessingResult]):
+        for result in product_results:
+            result.input_image.meta.adjust_product(result.output)
+
     def _import_products(self, product_results: list[PerImageProcessingResult]):
         for result in product_results:
             self._import_product(result)
@@ -109,7 +115,7 @@ class ProductsHarvester:
     def _import_product(self, product_result: PerImageProcessingResult):
         imported_product = ImportedProduct.from_product(
             product=product_result.output,
-            source_image_id=product_result.input_image.id,
+            source_image=product_result.input_image,
             is_barcode_checked=product_result.is_barcode_checked,
         )
         try:

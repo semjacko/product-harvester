@@ -63,7 +63,7 @@ class _PriceTagProcessingResult(ProcessingResult):
             raise ProcessingError(msg="Number of inputs and outputs do not match")
         self._results.extend(
             [
-                PerImageProcessingResult(input_image=Image(id=input_image.id, data=input_image.data), output=output)
+                PerImageProcessingResult(input_image=input_image, output=output)
                 for input_image, output in zip(inputs, outputs)
                 if isinstance(output, Product)
             ]

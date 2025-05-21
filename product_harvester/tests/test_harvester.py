@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import call, Mock, patch, MagicMock
 
 from product_harvester.harvester import ErrorLogger, ErrorTracker, HarvestError, ProductsHarvester, StdOutErrorTracker
-from product_harvester.image import Image
+from product_harvester.image import Image, ImageMeta
 from product_harvester.importers import ImportedProduct
 from product_harvester.processors import ProcessingError, ProcessingResult, PerImageProcessingResult
 from product_harvester.product import Product
@@ -68,7 +68,17 @@ class TestProductsHarvester(TestCase):
         )
 
     def test_harvest_imports_products(self):
-        mock_images = [Image(id="image1", data="/image1.jpg"), Image(id="image2", data="/image2.png")]
+        class MockImageMeta(ImageMeta):
+            def __init__(self):
+                super().__init__({})
+
+            def adjust_product(self, product: Product) -> None:
+                product.name = "Mock adjusted"
+
+        mock_images = [
+            Image(id="image1", data="/image1.jpg", meta=MockImageMeta()),
+            Image(id="image2", data="/image2.png"),
+        ]
         self._mock_retriever.retrieve_images.return_value = iter(mock_images)
         mock_products = [
             Product(name="Banana", qty=1.0, qty_unit="kg", price=1.99, barcode="456", category="jedlo"),
@@ -87,8 +97,20 @@ class TestProductsHarvester(TestCase):
         self._mock_processor.process.assert_called_once_with(mock_images)
         self._mock_tracker.track_errors.assert_not_called()
         want_calls = [
-            call(ImportedProduct.from_product(mock_product, source_image_id=mock_image.id, is_barcode_checked=True))
-            for mock_product, mock_image in zip(mock_products, mock_images)
+            call(
+                ImportedProduct.from_product(
+                    Product(name="Mock adjusted", qty=1.0, qty_unit="kg", price=1.99, barcode="456", category="jedlo"),
+                    source_image=mock_images[0],
+                    is_barcode_checked=True,
+                )
+            ),
+            call(
+                ImportedProduct.from_product(
+                    Product(name="Milk", qty=500, qty_unit="ml", price=0.99, barcode="66053", category="voda"),
+                    source_image=mock_images[1],
+                    is_barcode_checked=True,
+                )
+            ),
         ]
         self._mock_importer.import_product.assert_has_calls(want_calls)
 
@@ -131,7 +153,7 @@ class TestProductsHarvester(TestCase):
             ]
         )
         self._mock_importer.import_product.assert_called_once_with(
-            ImportedProduct.from_product(mock_product, source_image_id="image1", is_barcode_checked=False)
+            ImportedProduct.from_product(mock_product, source_image=mock_images[0], is_barcode_checked=False)
         )
 
     def test_harvest_empty_retriever_result(self):
@@ -175,7 +197,7 @@ class TestProductsHarvester(TestCase):
             [HarvestError("Failed to retrieve image", {"detailed_info": "Some error"})]
         )
         self._mock_importer.import_product.assert_called_once_with(
-            ImportedProduct.from_product(mock_product, source_image_id="image1", is_barcode_checked=True)
+            ImportedProduct.from_product(mock_product, source_image=valid_input_image, is_barcode_checked=True)
         )
 
     def test_harvest_processor_error(self):
@@ -233,7 +255,7 @@ class TestProductsHarvester(TestCase):
                             "barcode": "456",
                             "brand": "",
                             "category": "jedlo",
-                            "source_image_id": "image1",
+                            "source_image": mock_images[0].model_dump(),
                             "is_barcode_checked": False,
                         },
                         "detailed_info": "Some importing error",
@@ -242,7 +264,7 @@ class TestProductsHarvester(TestCase):
             ]
         )
         want_calls = [
-            call(ImportedProduct.from_product(mock_product, source_image_id=mock_image.id, is_barcode_checked=False))
+            call(ImportedProduct.from_product(mock_product, source_image=mock_image, is_barcode_checked=False))
             for mock_product, mock_image in zip(mock_products, mock_images)
         ]
         self._mock_importer.import_product.assert_has_calls(want_calls)
