@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 class GoogleDriveFileInfo(BaseModel):
     id: str
+    name: str
     mime_type: str
 
 
@@ -61,11 +62,12 @@ class GoogleDriveClient:
     ) -> tuple[list[GoogleDriveFileInfo], str | None]:
         self.ensure_credentials()
         request = self._files_service.list(
-            pageSize=batch_size, q=query, fields="nextPageToken, files(id, mimeType)", pageToken=page_offset_token
+            pageSize=batch_size, q=query, fields="nextPageToken, files(id, name, mimeType)", pageToken=page_offset_token
         )
         result = request.execute()
         files = [
-            GoogleDriveFileInfo(id=file.get("id", ""), mime_type=file.get("mimeType", "")) for file in result["files"]
+            GoogleDriveFileInfo(id=file.get("id", ""), name=file.get("name", ""), mime_type=file.get("mimeType", ""))
+            for file in result["files"]
         ]
         return files, result.get("nextPageToken", None)
 

@@ -1,7 +1,7 @@
-import ntpath
 import os
 from abc import ABC, abstractmethod
 from glob import glob
+from pathlib import Path
 from typing import Generator, Any, Self
 
 from product_harvester.clients.google_drive_client import GoogleDriveClient
@@ -57,7 +57,7 @@ class LocalImagesRetrieverWithMeta(LocalImagesRetriever):
 
     @staticmethod
     def _extract_image_name(path: str) -> str:
-        return ntpath.basename(path)
+        return Path(path).stem
 
 
 class GoogleDriveImagesRetriever(ImagesRetriever):
@@ -77,3 +77,14 @@ class GoogleDriveImagesRetriever(ImagesRetriever):
         for file in self._client.get_image_files_info(self._folder_id):
             data = self._client.download_file_content(file)
             yield Image(id=file.id, data=data)
+
+
+class GoogleDriveImagesRetrieverWithMeta(GoogleDriveImagesRetriever):
+    def retrieve_images(self) -> Generator[str, None, None]:
+        for file in self._client.get_image_files_info(self._folder_id):
+            data = self._client.download_file_content(file)
+            yield Image(id=file.id, data=data, meta=_ImageMeta(self._stem_file_name(file.name)))
+
+    @staticmethod
+    def _stem_file_name(path: str) -> str:
+        return Path(path).stem
