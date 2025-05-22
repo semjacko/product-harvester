@@ -9,7 +9,7 @@ class TestProduct(TestCase):
     def test_ok(self):
         # language=JSON
         Product.model_validate_json(
-            '{"name":"Banana", "qty":1.5, "qty_unit":"kg", "price":1, "barcode":"123", "brand":null, "category":"fruit"}'
+            '{"name":"Banana", "qty":1.5, "qty_unit":"kg", "price":1, "barcode":"13", "brand":null, "category":"fruit"}'
         )
         # language=JSON
         Product.model_validate_json(

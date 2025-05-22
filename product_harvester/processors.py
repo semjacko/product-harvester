@@ -142,7 +142,7 @@ class PriceTagImageProcessor(ImageProcessor):
                 "system",
                 """
 Extract product data from the image of a product price tag.
-As a category, use only one from the following list: 
+As a category, use only one from the following list:
   {categories}
 
 {format_instructions}
