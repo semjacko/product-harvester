@@ -13,11 +13,14 @@ class TestGoogleDriveClient(TestCase):
         self._mock_files_service = MagicMock()
         self._mock_files_service.list.return_value.execute.side_effect = [
             {
-                "files": [{"id": "1", "mimeType": "image/png"}, {"id": "2", "mimeType": "image/jpeg"}],
+                "files": [
+                    {"id": "1", "name": "one", "mimeType": "image/png"},
+                    {"id": "2", "name": "two", "mimeType": "image/jpeg"},
+                ],
                 "nextPageToken": "some_token",
             },
             {
-                "files": [{"id": "3", "mimeType": "image/jpeg"}],
+                "files": [{"id": "3", "name": "three", "mimeType": "image/jpeg"}],
                 "nextPageToken": None,
             },
         ]
@@ -60,9 +63,9 @@ class TestGoogleDriveClient(TestCase):
         self.assertEqual(
             result,
             [
-                GoogleDriveFileInfo(id="1", mime_type="image/png"),
-                GoogleDriveFileInfo(id="2", mime_type="image/jpeg"),
-                GoogleDriveFileInfo(id="3", mime_type="image/jpeg"),
+                GoogleDriveFileInfo(id="1", name="one", mime_type="image/png"),
+                GoogleDriveFileInfo(id="2", name="two", mime_type="image/jpeg"),
+                GoogleDriveFileInfo(id="3", name="three", mime_type="image/jpeg"),
             ],
         )
         self._mock_files_service.assert_has_calls(
@@ -70,14 +73,14 @@ class TestGoogleDriveClient(TestCase):
                 call.list(
                     pageSize=8,
                     q="'test_folder_id' in parents and mimeType contains 'image/'",
-                    fields="nextPageToken, files(id, mimeType)",
+                    fields="nextPageToken, files(id, name, mimeType)",
                     pageToken=None,
                 ),
                 call.list().execute(),
                 call.list(
                     pageSize=8,
                     q="'test_folder_id' in parents and mimeType contains 'image/'",
-                    fields="nextPageToken, files(id, mimeType)",
+                    fields="nextPageToken, files(id, name, mimeType)",
                     pageToken="some_token",
                 ),
                 call.list().execute(),
@@ -91,7 +94,7 @@ class TestGoogleDriveClient(TestCase):
     def test_download_file_content(self, mock_build, mock_request, mock_media_download, mock_bytes_io):
         mock_build.return_value.files.return_value = self._mock_files_service
         self._client._credentials = MagicMock(valid=False, expired=True, refresh_token="token")
-        mock_file = GoogleDriveFileInfo(id="1", mime_type="image/png")
+        mock_file = GoogleDriveFileInfo(id="1", name="one", mime_type="image/png")
         mock_media_download.return_value.next_chunk.return_value = (None, True)
         mock_bytes_io.return_value.getvalue.return_value = b"test_data"
         with patch.object(self._client._credentials, "refresh") as mock_refresh:

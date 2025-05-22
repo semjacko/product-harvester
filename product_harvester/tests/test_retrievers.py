@@ -92,8 +92,8 @@ class TestGoogleDriveImagesRetriever(TestCase):
     def test_simple(self, mocked_client):
         mock_client = mocked_client.return_value
         test_files = [
-            GoogleDriveFileInfo(id="file_id_1", mime_type="image/png"),
-            GoogleDriveFileInfo(id="file_id_2", mime_type="image/jpeg"),
+            GoogleDriveFileInfo(id="file_id_1", name="one", mime_type="image/png"),
+            GoogleDriveFileInfo(id="file_id_2", name="two", mime_type="image/jpeg"),
         ]
         mock_client.get_image_files_info.return_value = iter(test_files)
         mock_client.download_file_content.side_effect = ["/some/binary", "/another/binary"]
@@ -109,7 +109,7 @@ class TestGoogleDriveImagesRetriever(TestCase):
     @patch("product_harvester.retrievers.GoogleDriveClient")
     def test_change_folder(self, mocked_client):
         mock_client = mocked_client.return_value
-        test_file = GoogleDriveFileInfo(id="file_id_1", mime_type="image/png")
+        test_file = GoogleDriveFileInfo(id="file_id_1", name="one", mime_type="image/png")
         mock_client.get_image_files_info.return_value = iter([test_file])
         mock_client.download_file_content.side_effect = ["/some/binary"]
         retriever = GoogleDriveImagesRetriever.from_client_config(self._test_client_config, self._test_folder_id)
@@ -122,7 +122,7 @@ class TestGoogleDriveImagesRetriever(TestCase):
     @patch("product_harvester.retrievers.GoogleDriveClient")
     def test_failure(self, mocked_client):
         mock_client = mocked_client.return_value
-        test_file = GoogleDriveFileInfo(id="file_id_1", mime_type="image/png")
+        test_file = GoogleDriveFileInfo(id="file_id_1", name="one", mime_type="image/png")
         mock_client.get_image_files_info.return_value = iter([test_file])
         mock_client.download_file_content.side_effect = ValueError("Some error")
         retriever = GoogleDriveImagesRetriever.from_client_config(self._test_client_config, self._test_folder_id)
