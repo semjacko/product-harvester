@@ -46,7 +46,7 @@ class _UsetriAPIProductFactory(UsetriAPIProduct):
                 is_barcode_checked=product.is_barcode_checked,
             ),
             price=product.price,
-            shop_id=shop_id if shop_id is not None else product.source_image.meta["shop_id"],
+            shop_id=shop_id if shop_id is not None else int(product.source_image.meta["shop_id"]),
         )
 
     @classmethod
