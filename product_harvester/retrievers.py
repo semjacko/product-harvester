@@ -1,10 +1,12 @@
+import ntpath
 import os
 from abc import ABC, abstractmethod
 from glob import glob
 from typing import Generator, Any, Self
 
 from product_harvester.clients.google_drive_client import GoogleDriveClient
-from product_harvester.image import Image
+from product_harvester.image import Image, ImageMeta
+from product_harvester.product import Product
 
 
 class ImagesRetriever(ABC):
@@ -29,6 +31,33 @@ class LocalImagesRetriever(ImagesRetriever):
     def _retrieve_file_paths(self) -> list[str]:
         path_pattern = os.path.join(self._folder_path, "*")
         return glob(path_pattern)
+
+
+class _ImageMeta(ImageMeta):
+    def __init__(self, formatted_meta: str):
+        parts = formatted_meta.split("_")
+        if len(parts) == 3:
+            shop_id = parts[0]
+            self.barcode = parts[1]
+            date = parts[2]
+        else:
+            raise ValueError("Meta format is incorrect. Expected 'shopId_barcode_date'.")
+        super().__init__({"shop_id": shop_id, "date": date})
+
+    def adjust_product(self, product: Product) -> None:
+        product.barcode = self.barcode
+
+
+class LocalImagesRetrieverWithMeta(LocalImagesRetriever):
+    def retrieve_images(self) -> Generator[Image, None, None]:
+        for image in super().retrieve_images():
+            image_name = self._extract_image_name(image.id)
+            image.meta = _ImageMeta(image_name)
+            yield image
+
+    @staticmethod
+    def _extract_image_name(path: str) -> str:
+        return ntpath.basename(path)
 
 
 class GoogleDriveImagesRetriever(ImagesRetriever):
