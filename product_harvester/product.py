@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class Product(BaseModel):
@@ -11,18 +11,3 @@ class Product(BaseModel):
     barcode: Optional[str] = Field(default="")
     brand: Optional[str] = Field(strict=True, default="")
     category: str = Field(strict=True, min_length=1)
-
-    @field_validator("barcode", mode="before")
-    @classmethod
-    def coerce_and_validate_barcode(cls, value):
-        if not value:
-            return ""
-        if isinstance(value, int):
-            if value < 0:
-                raise ValueError("Invalid value")
-            return str(value)
-        if isinstance(value, str):
-            if not value.isdigit():
-                raise ValueError("Invalid value")
-            return value
-        raise ValueError("Invalid type")

@@ -142,7 +142,9 @@ class PriceTagImageProcessor(ImageProcessor):
                 "system",
                 """
 Extract product data from the image of a product price tag.
-As a category, use from these: {categories}.
+As a category, use only one from the following list: 
+  {categories}
+
 {format_instructions}
 """,
             ),
@@ -163,7 +165,7 @@ As a category, use from these: {categories}.
     def __init__(self, model: BaseChatModel, categories: list[str] | None = None, max_concurrency: int = 4):
         categories = categories if categories is not None else ["food", "drinks", "other"]
         self._model = model
-        self._categories_instructions = ",".join(categories)
+        self._categories_instructions = ", ".join([f"'{category}'" for category in categories])
         self._max_concurrency = max_concurrency
         self._parser_format_instructions = self._parser.get_format_instructions()
         self._chain = self._prompt | self._model | self._parser

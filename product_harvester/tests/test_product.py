@@ -9,7 +9,7 @@ class TestProduct(TestCase):
     def test_ok(self):
         # language=JSON
         Product.model_validate_json(
-            '{"name":"Banana", "qty":1.5, "qty_unit":"kg", "price":1, "barcode":123, "brand":null, "category":"fruit"}'
+            '{"name":"Banana", "qty":1.5, "qty_unit":"kg", "price":1, "barcode":"123", "brand":null, "category":"fruit"}'
         )
         # language=JSON
         Product.model_validate_json(
@@ -73,23 +73,6 @@ class TestProduct(TestCase):
             # language=JSON
             Product.model_validate_json(
                 '{"name":"Banana", "qty":10, "qty_unit":"kg", "price":-2, "barcode":"123", "category":"fruit"}'
-            )
-
-    def test_invalid_barcode(self):
-        with self.assertRaises(ValidationError):
-            # language=JSON
-            Product.model_validate_json(
-                '{"name":"Banana", "qty":10, "qty_unit":"kg", "price":10, "barcode":"-1", "category":"fruit"}'
-            )
-        with self.assertRaises(ValidationError):
-            # language=JSON
-            Product.model_validate_json(
-                '{"name":"Banana", "qty":10, "qty_unit":"kg", "price":10, "barcode":-1, "category":"fruit"}'
-            )
-        with self.assertRaises(ValidationError):
-            # language=JSON
-            Product.model_validate_json(
-                '{"name":"Banana", "qty":10, "qty_unit":"kg", "price":10, "barcode":1.3, "category":"fruit"}'
             )
 
     def test_empty_category(self):
