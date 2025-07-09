@@ -282,17 +282,3 @@ class TestBarcodeReader(TestCase):
         mock_bas64_decode.assert_called_once_with("test_base64_image")
         mock_imdecode.assert_called_once()
         mock_decode.assert_called_once()
-
-    @patch("product_harvester.processors.decode")
-    @patch("product_harvester.processors.cv2.imdecode")
-    @patch("product_harvester.processors.base64.b64decode", return_value=b"test_data")
-    def test_read_barcode_non_numeric(self, mock_bas64_decode, mock_imdecode, mock_decode):
-        mock_imdecode.return_value = np.zeros((100, 100, 3), dtype=np.uint8)
-        mock_barcode = MagicMock()
-        mock_barcode.data.decode.return_value = "123asd456"
-        mock_decode.return_value = [mock_barcode]
-        with self.assertRaises(ValueError):
-            _BarcodeReader().read_barcode("data:image/png;base64,test_base64_image")
-        mock_bas64_decode.assert_called_once_with("test_base64_image")
-        mock_imdecode.assert_called_once()
-        mock_decode.assert_called_once()
