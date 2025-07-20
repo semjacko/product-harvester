@@ -12,3 +12,4 @@ google-api-python-client~=2.157.0
 numpy~=2.2.2
 opencv-python~=4.11.0.86
 pyzbar~=0.1.9
+tqdm~=4.67.1

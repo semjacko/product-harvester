@@ -4,6 +4,8 @@ from glob import glob
 from pathlib import Path
 from typing import Generator, Any, Self
 
+from tqdm import tqdm
+
 from product_harvester.clients.google_drive_client import GoogleDriveClient
 from product_harvester.image import Image, ImageMeta
 from product_harvester.product import Product
@@ -21,7 +23,9 @@ class LocalImagesRetriever(ImagesRetriever):
         self._folder_path = os.path.normpath(folder_path)
 
     def retrieve_images(self) -> Generator[Image, None, None]:
-        yield from [Image(id=image_path, data=image_path) for image_path in self._retrieve_image_paths()]
+        image_paths = self._retrieve_image_paths()
+        for image_path in tqdm(image_paths):
+            yield Image(id=image_path, data=image_path)
 
     def _retrieve_image_paths(self) -> list[str]:
         return [
