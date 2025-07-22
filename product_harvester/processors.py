@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 import cv2
 import numpy as np
 import requests
-from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -14,6 +13,7 @@ from pydantic import BaseModel, ConfigDict
 from pyzbar.pyzbar import decode
 
 from product_harvester.image import Image
+from product_harvester.model_factory import ModelFactory
 from product_harvester.product import Product
 
 
@@ -166,13 +166,12 @@ As a category, use only one from the following list:
     )
     _parser = PydanticOutputParser(pydantic_object=Product)
 
-    def __init__(self, model: BaseChatModel, categories: list[str] | None = None, max_concurrency: int = 4):
+    def __init__(self, model_factory: ModelFactory, categories: list[str] | None = None, max_concurrency: int = 4):
         categories = categories if categories is not None else ["food", "drinks", "other"]
-        self._model = model
+        self._model_factory = model_factory
         self._categories_instructions = ", ".join([f"'{category}'" for category in categories])
         self._max_concurrency = max_concurrency
         self._parser_format_instructions = self._parser.get_format_instructions()
-        self._chain = self._prompt | self._model | self._parser
         self._chain_stage_descriptions = [
             "prompt preparation",
             "extracting data from image",
@@ -183,7 +182,8 @@ As a category, use only one from the following list:
     def process(self, images: list[Image]) -> ProcessingResult:
         input_data = [self._make_input_data(image) for image in images]
         result = _PriceTagProcessingResult(self._chain_stage_descriptions)
-        chain = self._chain.with_listeners(on_error=result.add_error_from_run_tree)
+        chain = self._prompt | self._model_factory.get_model() | self._parser
+        chain = chain.with_listeners(on_error=result.add_error_from_run_tree)
         outputs = chain.batch(input_data, RunnableConfig(max_concurrency=self._max_concurrency), return_exceptions=True)
         result.set_products_from_outputs(images, outputs)
         self._adjust_barcodes(result)

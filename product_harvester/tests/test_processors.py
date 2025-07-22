@@ -193,7 +193,9 @@ class TestPriceTagImageProcessor(TestCase):
     def test_process_unknown_stage_exception(self):
         fake_model = Mock()
         fake_model.side_effect = FakeListChatModelError()
-        processor = PriceTagImageProcessor(fake_model, max_concurrency=1)
+        model_factory = MagicMock()
+        model_factory.get_model.return_value = fake_model
+        processor = PriceTagImageProcessor(model_factory, max_concurrency=1)
 
         # Patch instantiation of the object, so it will be created with description just for the 1st (prompt) stage
         mock_result = _PriceTagProcessingResult(["a"])
@@ -218,7 +220,9 @@ class TestPriceTagImageProcessor(TestCase):
 
     @staticmethod
     def _prepare_processor(model: BaseChatModel) -> PriceTagImageProcessor:
-        processor = PriceTagImageProcessor(model, max_concurrency=1)
+        model_factory = MagicMock()
+        model_factory.get_model.return_value = model
+        processor = PriceTagImageProcessor(model_factory, max_concurrency=1)
         processor._barcode_reader = Mock()
         processor._barcode_reader.read_barcode.return_value = None
         return processor
