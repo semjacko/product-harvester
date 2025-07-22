@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from product_harvester.product import Product
 
@@ -24,11 +24,17 @@ class NoImageMeta(ImageMeta):
     def adjust_product(self, product: Product) -> None:
         pass
 
+    def __eq__(self, other):
+        return isinstance(other, NoImageMeta)
+
+    def __hash__(self):
+        return hash("NoImageMeta")
+
 
 class Image(BaseModel):
     id: str
     data: str
-    meta: ImageMeta = NoImageMeta()
+    meta: ImageMeta = Field(default_factory=NoImageMeta, exclude=True)
 
     class Config:
         arbitrary_types_allowed = True

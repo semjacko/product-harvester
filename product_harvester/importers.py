@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import Field
@@ -25,6 +26,16 @@ class ProductsImporter(ABC):
 class StdOutProductsImporter(ProductsImporter):
     def import_product(self, product: ImportedProduct):
         print(product)
+
+
+class FileProductsImporter(ProductsImporter):
+    def __init__(self, file_path: str):
+        self._file_path = Path(file_path)
+        self._file_path.write_text("")
+
+    def import_product(self, product: ImportedProduct):
+        with self._file_path.open("a", encoding="utf-8") as file:
+            file.write(f"{product.model_dump_json()},\n")
 
 
 class _UsetriAPIProductFactory(UsetriAPIProduct):

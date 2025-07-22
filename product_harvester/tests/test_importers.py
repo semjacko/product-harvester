@@ -1,3 +1,5 @@
+import tempfile
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -9,6 +11,7 @@ from product_harvester.importers import (
     StdOutProductsImporter,
     _UsetriAPIProductFactory,
     ImportedProduct,
+    FileProductsImporter,
 )
 
 
@@ -137,6 +140,34 @@ class TestStdOutProductsImporter(TestCase):
     def test_print_imported_product_success(self, print_mock):
         StdOutProductsImporter().import_product(self._product)
         print_mock.assert_called_once_with(self._product)
+
+
+class TestFileProductsImporter(TestCase):
+
+    def setUp(self):
+        self.temp_file = tempfile.NamedTemporaryFile(delete=False)
+        self.importer = FileProductsImporter(self.temp_file.name)
+        self._product = ImportedProduct(
+            name="Bananas",
+            qty=1.5,
+            qty_unit="kg",
+            price=1.45,
+            brand="Clever",
+            barcode="123",
+            category="jedlo",
+            source_image=Image(id="source_image", data="whatever"),
+            is_barcode_checked=True,
+        )
+
+    def tearDown(self):
+        Path(self.temp_file.name).unlink()  # Clean up
+
+    def test_import_products(self):
+        for product in [self._product, self._product, self._product]:
+            self.importer.import_product(product)
+        with open(self.temp_file.name) as f:
+            content = f.read()
+        self.assertEqual(content, f"{self._product.model_dump_json()},\n" * 3)
 
 
 class TestUsetriAPIProductsImporter(TestCase):
