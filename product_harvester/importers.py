@@ -50,7 +50,7 @@ class _UsetriAPIProductFactory(UsetriAPIProduct):
                 barcode=product.barcode,
                 name=product.name,
                 amount=amount,
-                brand=product.brand,
+                brand=product.brand or None,
                 unit=unit,
                 category_id=category_id,
                 source_image=product.source_image.id,

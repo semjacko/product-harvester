@@ -19,8 +19,9 @@ class ModelWithLimits:
 
 
 class RateLimitedModelFactory(ModelFactory):
-    def __init__(self, models: list[ModelWithLimits]):
+    def __init__(self, models: list[ModelWithLimits], rpd_subtractor: int = 1):
         self._models = models
+        self._rpd_subtractor = rpd_subtractor
         for model_with_limits in self._models:
             model_with_limits.model.rate_limiter = InMemoryRateLimiter(requests_per_second=model_with_limits.rpm / 60)
         self._model_cycle = self._available_model_generator()
@@ -33,7 +34,7 @@ class RateLimitedModelFactory(ModelFactory):
             found = False
             for model_with_limits in self._models:
                 if model_with_limits.rpd > 0:
-                    model_with_limits.rpd -= 1
+                    model_with_limits.rpd -= self._rpd_subtractor
                     found = True
                     yield model_with_limits.model
             if not found:

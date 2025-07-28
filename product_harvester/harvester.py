@@ -48,11 +48,13 @@ class ProductsHarvester:
         processor: ImageProcessor,
         importer: ProductsImporter,
         error_tracker: ErrorTracker = ErrorLogger(),
+        batch_size: int = 8,
     ):
         self._retriever = retriever
         self._processor = processor
         self._importer = importer
         self._error_tracker = error_tracker
+        self._batch_size = batch_size
 
     def harvest(self):
         for images_batch in self._generate_image_batches():
@@ -61,21 +63,21 @@ class ProductsHarvester:
             self._override_results_with_input_meta(product_results)
             self._import_products(product_results)
 
-    def _generate_image_batches(self, batch_size: int = 8) -> Generator[list[Image], None, None]:
+    def _generate_image_batches(self) -> Generator[list[Image], None, None]:
         try:
             images_generator = self._retriever.retrieve_images()
         except Exception as e:
             self._track_errors([HarvestError("Failed to retrieve images", {"detailed_info": str(e)})])
             return
         while True:
-            batch = self._make_images_batch(images_generator, batch_size)
+            batch = self._make_images_batch(images_generator)
             yield batch
-            if len(batch) < batch_size:
+            if len(batch) < self._batch_size:
                 return
 
-    def _make_images_batch(self, generator: Generator[Image, None, None], batch_size: int = 8) -> list[Image]:
+    def _make_images_batch(self, generator: Generator[Image, None, None]) -> list[Image]:
         batch: list[Image] = []
-        for i in range(batch_size):
+        for i in range(self._batch_size):
             try:
                 batch.append(next(generator))
             except StopIteration:
