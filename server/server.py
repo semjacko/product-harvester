@@ -5,6 +5,7 @@ from starlette.staticfiles import StaticFiles
 
 from product_harvester.harvester import ProductsHarvester
 from product_harvester.importers import ImportedProduct
+from product_harvester.model_factory import SingleModelFactory
 from product_harvester.processors import PriceTagImageProcessor
 from server.error_collector import ErrorCollector
 from server.products_collector import ProductsCollector
@@ -44,7 +45,8 @@ def _prepare_harvester(
 ) -> ProductsHarvester:
     model = process_request.get_chat_model()
     retriever = Base64Retriever([process_request.image_base64])
-    processor = PriceTagImageProcessor(model)
+    factory = SingleModelFactory(model)
+    processor = PriceTagImageProcessor(factory)
     return ProductsHarvester(retriever, processor, products_collector, error_collector)
 
 

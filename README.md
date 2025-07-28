@@ -40,11 +40,13 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 from product_harvester.harvester import ProductsHarvester, StdOutErrorTracker
 from product_harvester.importers import StdOutProductsImporter
+from product_harvester.model_factory import SingleModelFactory
 from product_harvester.processors import PriceTagImageProcessor
 from product_harvester.retrievers import LocalImagesRetriever
 
 retriever = LocalImagesRetriever("./path/to/images/folder")
-processor = PriceTagImageProcessor(ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key="<api_key>"))
+model_factory = SingleModelFactory(ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key="<api_key>"))
+processor = PriceTagImageProcessor(model_factory)
 printer = StdOutProductsImporter()
 logger = StdOutErrorTracker()
 harvester = ProductsHarvester(retriever, processor, importer=printer, error_tracker=logger)
