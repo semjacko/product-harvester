@@ -11,6 +11,14 @@ class ModelFactory(ABC):
     def get_model(self) -> BaseChatModel: ...
 
 
+class SingleModelFactory(ModelFactory):
+    def __init__(self, model: BaseChatModel) -> None:
+        self._model = model
+
+    def get_model(self) -> BaseChatModel:
+        return self._model
+
+
 class ModelWithLimits:
     def __init__(self, model: BaseChatModel, rpm: int, rpd: int):
         self.model = model

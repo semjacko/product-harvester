@@ -3,13 +3,20 @@ from unittest.mock import MagicMock
 
 from langchain_core.rate_limiters import InMemoryRateLimiter
 
-from product_harvester.model_factory import ModelFactory, ModelWithLimits, RateLimitedModelFactory
+from product_harvester.model_factory import ModelFactory, ModelWithLimits, RateLimitedModelFactory, SingleModelFactory
 
 
 class TestModelFactory(TestCase):
     def test_abstract_base_class(self):
         with self.assertRaises(TypeError):
             ModelFactory().get_model()
+
+
+class TestSingleModelFactory(TestCase):
+    def test_get_model(self):
+        model = MagicMock()
+        factory = SingleModelFactory(model)
+        self.assertEqual(factory.get_model(), model)
 
 
 class TestRateLimitedModelFactory(TestCase):
