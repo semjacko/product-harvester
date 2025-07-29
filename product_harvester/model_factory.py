@@ -41,8 +41,9 @@ class RateLimitedModelFactory(ModelFactory):
         while True:
             found = False
             for model_with_limits in self._models:
-                if model_with_limits.rpd > 0:
-                    model_with_limits.rpd -= self._rpd_subtractor
+                new_rpd = model_with_limits.rpd - self._rpd_subtractor
+                if new_rpd >= 0:
+                    model_with_limits.rpd = new_rpd
                     found = True
                     yield model_with_limits.model
             if not found:
